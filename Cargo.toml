@@ -1,0 +1,18 @@
+[package]
+name = "oblivion"
+version = "0.1.0"
+edition = "2018"
+resolver = "2"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+wgpu = "0.11.0"
+pollster = "0.2.4"
+raw-window-handle = "0.3.3"
+bytemuck = { version = "1.7.2", features = [ "derive" ] }
+
+[dev-dependencies]
+winit = "0.25.0"
+image = "0.23.14"
+rand = "0.8.4"
