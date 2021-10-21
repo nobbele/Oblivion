@@ -7,7 +7,7 @@ resolver = "2"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-wgpu = "0.11.0"
+wgpu = { version = "0.11.0", features = ["glsl"] }
 pollster = "0.2.4"
 raw-window-handle = "0.3.3"
 bytemuck = { version = "1.7.2", features = [ "derive" ] }

@@ -4,6 +4,8 @@ use wgpu::{
     Surface,
 };
 
+use crate::Vertex;
+
 // TODO Result
 pub fn get_adapter_surface(
     window: &impl raw_window_handle::HasRawWindowHandle,
@@ -31,4 +33,58 @@ pub fn get_device_queue(adapter: &Adapter) -> (Device, Queue) {
         None,
     ))
     .expect("Unable to create device")
+}
+
+pub fn create_pipeline<'a>(
+    device: &Device,
+    format: wgpu::TextureFormat,
+    source: wgpu::ShaderSource,
+    bind_group_layout: &wgpu::BindGroupLayout,
+) -> wgpu::RenderPipeline {
+    let shader = device.create_shader_module(&wgpu::ShaderModuleDescriptor {
+        label: Some("Oblivion_MeshShader"),
+        source,
+    });
+
+    let render_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+        label: Some("Oblivion_MeshRenderPipelineLayout"),
+        bind_group_layouts: &[&bind_group_layout],
+        push_constant_ranges: &[],
+    });
+
+    let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+        label: Some("Oblivion_MeshRenderPipeline"),
+        layout: Some(&render_pipeline_layout),
+        vertex: wgpu::VertexState {
+            module: &shader,
+            entry_point: "main",
+            buffers: &[Vertex::desc()],
+        },
+        fragment: Some(wgpu::FragmentState {
+            module: &shader,
+            entry_point: "main",
+            targets: &[wgpu::ColorTargetState {
+                format,
+                blend: Some(wgpu::BlendState::REPLACE),
+                write_mask: wgpu::ColorWrites::ALL,
+            }],
+        }),
+        primitive: wgpu::PrimitiveState {
+            topology: wgpu::PrimitiveTopology::TriangleList,
+            strip_index_format: None,
+            front_face: wgpu::FrontFace::Cw,
+            cull_mode: Some(wgpu::Face::Back),
+            polygon_mode: wgpu::PolygonMode::Fill,
+            clamp_depth: false,
+            conservative: false,
+        },
+        depth_stencil: None,
+        multisample: wgpu::MultisampleState {
+            count: 1,
+            mask: !0,
+            alpha_to_coverage_enabled: false,
+        },
+    });
+
+    render_pipeline
 }

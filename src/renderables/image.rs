@@ -2,12 +2,11 @@ use std::rc::Rc;
 
 use wgpu::util::DeviceExt;
 
-use crate::{
-    pipelines::texture_pipeline::TexturePipeline, GraphicsContext, MeshBuffer, Render, Renderable,
-};
+use crate::{GraphicsContext, InstanceData, PipelineData, Render, RenderData};
 
 pub struct Image {
-    imp: Rc<ImageImpl>,
+    //imp: Rc<ImageImpl>,
+    data: Rc<PipelineData>,
 }
 
 impl Image {
@@ -44,7 +43,7 @@ impl Image {
         });
 
         let bind_group = ctx.device.create_bind_group(&wgpu::BindGroupDescriptor {
-            layout: &ctx.texture_pipeline.bind_group_layout,
+            layout: &ctx.bind_group_layout,
             entries: &[
                 wgpu::BindGroupEntry {
                     binding: 0,
@@ -59,40 +58,19 @@ impl Image {
         });
 
         Image {
-            imp: Rc::new(ImageImpl {
-                pipeline: Rc::clone(&ctx.texture_pipeline),
-                mesh_buffer: Rc::clone(&ctx.texture_mesh_buffer),
+            data: Rc::new(PipelineData {
+                mesh_buffer: ctx.quad_mesh_buffer.clone(),
                 bind_group,
-                //texture,
-                //texture_view,
-                //sampler,
             }),
         }
     }
 
     pub fn draw(&self, render: &mut Render) {
-        render.queue.push(Rc::clone(&self.imp) as Rc<_>)
-    }
-}
-
-pub(crate) struct ImageImpl {
-    pipeline: Rc<TexturePipeline>,
-    mesh_buffer: Rc<MeshBuffer>,
-    bind_group: wgpu::BindGroup,
-    //texture: wgpu::Texture,
-    //texture_view: wgpu::TextureView,
-    //sampler: wgpu::Sampler,
-}
-
-impl Renderable for ImageImpl {
-    fn render<'a>(&'a self, render_pass: &mut wgpu::RenderPass<'a>) {
-        render_pass.set_pipeline(&self.pipeline.render_pipeline);
-        render_pass.set_bind_group(0, &self.bind_group, &[]);
-        render_pass.set_vertex_buffer(0, self.mesh_buffer.vertex.0.slice(..));
-        render_pass.set_index_buffer(
-            self.mesh_buffer.index.0.slice(..),
-            wgpu::IndexFormat::Uint16,
-        );
-        render_pass.draw_indexed(0..self.mesh_buffer.index.1, 0, 0..1);
+        render.queue.push(RenderData {
+            pipeline_data: self.data.clone(),
+            instance_data: InstanceData {
+                pipeline_id: render.shader_queue.last().copied().unwrap_or(0),
+            },
+        })
     }
 }

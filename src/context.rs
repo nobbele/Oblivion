@@ -1,16 +1,8 @@
 use std::rc::Rc;
 
 use crate::{
-    helpers::{get_adapter_surface, get_device_queue},
-    pipelines::{
-        mesh_pipeline::{create_mesh_pipeline, MeshPipeline},
-        texture_pipeline::{create_texture_pipeline, TexturePipeline},
-    },
-    vertices::{
-        image_vertex::{ImageVertex, IMAGE_INDICES, IMAGE_VERTICES},
-        mesh_vertex::MeshVertex,
-    },
-    MeshBuffer, Render, Vertex,
+    helpers::{create_pipeline, get_adapter_surface, get_device_queue},
+    MeshBuffer, Render, RenderData, QUAD_INDICES, QUAD_VERTICES,
 };
 
 pub struct GraphicsContext {
@@ -20,10 +12,10 @@ pub struct GraphicsContext {
     #[allow(dead_code)]
     pub(crate) config: wgpu::SurfaceConfiguration,
 
-    pub(crate) texture_pipeline: Rc<TexturePipeline>,
-    pub(crate) texture_mesh_buffer: Rc<MeshBuffer>,
+    pub(crate) pipeline_store: Vec<wgpu::RenderPipeline>,
+    pub(crate) bind_group_layout: wgpu::BindGroupLayout,
 
-    pub(crate) mesh_pipeline: Rc<MeshPipeline>,
+    pub(crate) quad_mesh_buffer: Rc<MeshBuffer>,
 }
 
 impl GraphicsContext {
@@ -51,30 +43,50 @@ impl GraphicsContext {
 
         surface.configure(&device, &config);
 
-        let texture_pipeline = create_texture_pipeline(
+        let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            entries: &[
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        multisampled: false,
+                        view_dimension: wgpu::TextureViewDimension::D2,
+                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Sampler {
+                        comparison: false,
+                        filtering: true,
+                    },
+                    count: None,
+                },
+            ],
+            label: Some("Oblivion_MeshBindGroupLayout"),
+        });
+
+        let standard_pipeline = create_pipeline(
             &device,
             config.format,
-            &[ImageVertex::desc()],
-            wgpu::ShaderSource::Wgsl(include_str!("../resources/shaders/quadtex.wgsl").into()),
+            wgpu::ShaderSource::Wgsl(include_str!("../resources/shaders/shader.wgsl").into()),
+            &bind_group_layout,
         );
 
-        let texture_mesh_buffer = MeshBuffer::from_slices(&device, IMAGE_VERTICES, IMAGE_INDICES);
+        let pipeline_store = vec![standard_pipeline];
 
-        let mesh_pipeline = create_mesh_pipeline(
-            &device,
-            config.format,
-            &[MeshVertex::desc()],
-            wgpu::ShaderSource::Wgsl(include_str!("../resources/shaders/mesh.wgsl").into()),
-        );
+        let quad_mesh_buffer = MeshBuffer::from_slices(&device, QUAD_VERTICES, QUAD_INDICES);
 
         GraphicsContext {
             surface,
             device,
             queue,
             config,
-            texture_pipeline: Rc::new(texture_pipeline),
-            texture_mesh_buffer: Rc::new(texture_mesh_buffer),
-            mesh_pipeline: Rc::new(mesh_pipeline),
+            pipeline_store,
+            quad_mesh_buffer: Rc::new(quad_mesh_buffer),
+            bind_group_layout,
         }
     }
 
@@ -111,8 +123,19 @@ impl GraphicsContext {
                 depth_stencil_attachment: None,
             });
 
-            for drawable in &render.queue {
-                drawable.render(&mut render_pass);
+            for RenderData {
+                pipeline_data,
+                instance_data,
+            } in &render.queue
+            {
+                render_pass.set_pipeline(&self.pipeline_store[instance_data.pipeline_id]);
+                render_pass.set_bind_group(0, &pipeline_data.bind_group, &[]);
+                render_pass.set_vertex_buffer(0, pipeline_data.mesh_buffer.vertex.0.slice(..));
+                render_pass.set_index_buffer(
+                    pipeline_data.mesh_buffer.index.0.slice(..),
+                    wgpu::IndexFormat::Uint16,
+                );
+                render_pass.draw_indexed(0..pipeline_data.mesh_buffer.index.1, 0, 0..1);
             }
         }
         render.queue.clear();
