@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use wgpu::util::DeviceExt;
 
-use crate::{GraphicsContext, InstanceData, MeshBuffer, PipelineData, Render, RenderData, Vertex};
+use crate::{GraphicsContext, MeshBuffer, PipelineData, Render, Transform, Vertex};
 
 #[derive(Default)]
 pub struct MeshBuilder {
@@ -107,7 +107,7 @@ impl Mesh {
                 dimension: wgpu::TextureDimension::D2,
                 format: wgpu::TextureFormat::Rgba8UnormSrgb,
                 usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
-                label: Some("Oblivion_Texture"),
+                label: Some("Oblivion_MeshTexture"),
             },
             &[255, 255, 255, 255],
         );
@@ -124,7 +124,7 @@ impl Mesh {
         });
 
         let bind_group = ctx.device.create_bind_group(&wgpu::BindGroupDescriptor {
-            layout: &ctx.bind_group_layout,
+            layout: &ctx.texture_bind_group_layout,
             entries: &[
                 wgpu::BindGroupEntry {
                     binding: 0,
@@ -135,7 +135,7 @@ impl Mesh {
                     resource: wgpu::BindingResource::Sampler(&sampler),
                 },
             ],
-            label: Some("Oblivion_TextureBindGroup"),
+            label: Some("Oblivion_MeshTextureBindGroup"),
         });
 
         Mesh {
@@ -146,12 +146,7 @@ impl Mesh {
         }
     }
 
-    pub fn draw(&self, render: &mut Render) {
-        render.queue.push(RenderData {
-            pipeline_data: self.data.clone(),
-            instance_data: InstanceData {
-                pipeline_id: render.shader_queue.last().copied().unwrap_or(0),
-            },
-        })
+    pub fn draw(&self, ctx: &mut GraphicsContext, render: &mut Render, transform: Transform) {
+        render.push_data(ctx, self.data.clone(), transform);
     }
 }

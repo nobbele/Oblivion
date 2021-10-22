@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use wgpu::util::DeviceExt;
 
-use crate::{GraphicsContext, InstanceData, PipelineData, Render, RenderData};
+use crate::{GraphicsContext, PipelineData, Render, Transform};
 
 pub struct Image {
     //imp: Rc<ImageImpl>,
@@ -43,7 +43,7 @@ impl Image {
         });
 
         let bind_group = ctx.device.create_bind_group(&wgpu::BindGroupDescriptor {
-            layout: &ctx.bind_group_layout,
+            layout: &ctx.texture_bind_group_layout,
             entries: &[
                 wgpu::BindGroupEntry {
                     binding: 0,
@@ -54,7 +54,7 @@ impl Image {
                     resource: wgpu::BindingResource::Sampler(&sampler),
                 },
             ],
-            label: Some("Oblivion_TextureBindGroup"),
+            label: Some("Oblivion_ImageBindGroup"),
         });
 
         Image {
@@ -65,12 +65,7 @@ impl Image {
         }
     }
 
-    pub fn draw(&self, render: &mut Render) {
-        render.queue.push(RenderData {
-            pipeline_data: self.data.clone(),
-            instance_data: InstanceData {
-                pipeline_id: render.shader_queue.last().copied().unwrap_or(0),
-            },
-        })
+    pub fn draw(&self, ctx: &mut GraphicsContext, render: &mut Render, transform: Transform) {
+        render.push_data(ctx, self.data.clone(), transform);
     }
 }

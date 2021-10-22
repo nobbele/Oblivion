@@ -1,4 +1,4 @@
-use oblivion::{GraphicsContext, Mesh, MeshBuilder, Render};
+use oblivion::{GraphicsContext, Mesh, MeshBuilder, Render, Transform};
 use rand::Rng;
 #[path = "common.rs"]
 mod common;
@@ -36,7 +36,7 @@ impl common::Example for DrawMeshExample {
         DrawMeshExample { mesh }
     }
 
-    fn draw(&self, render: &mut Render) {
+    fn draw(&self, ctx: &mut GraphicsContext, render: &mut Render) {
         oblivion::clear(
             render,
             wgpu::Color {
@@ -46,7 +46,7 @@ impl common::Example for DrawMeshExample {
                 a: 1.0,
             },
         );
-        self.mesh.draw(render);
+        self.mesh.draw(ctx, render, Transform::default());
     }
 }
 

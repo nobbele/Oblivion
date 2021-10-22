@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 use image::GenericImageView;
 use oblivion::{GraphicsContext, Image, Render, Transform};
 #[path = "common.rs"]
@@ -5,6 +7,7 @@ mod common;
 
 struct DrawImageExample {
     image: Image,
+    start: Instant,
 }
 
 impl common::Example for DrawImageExample {
@@ -14,7 +17,10 @@ impl common::Example for DrawImageExample {
         let image_rgba = image_data.as_rgba8().unwrap();
         let dimensions = image_data.dimensions();
         let image = Image::new(ctx, dimensions.0, dimensions.1, image_rgba);
-        DrawImageExample { image }
+        DrawImageExample {
+            image,
+            start: Instant::now(),
+        }
     }
 
     fn draw(&self, ctx: &mut GraphicsContext, render: &mut Render) {
@@ -27,7 +33,26 @@ impl common::Example for DrawImageExample {
                 a: 1.0,
             },
         );
-        self.image.draw(ctx, render, Transform::default());
+        let elapsed = self.start.elapsed().as_secs_f32() * 2.0;
+        for i in 0..12 {
+            self.image.draw(
+                ctx,
+                render,
+                Transform {
+                    scale: [
+                        ((elapsed * 2.0).cos() * 0.5 + 1.0) / 4.0,
+                        ((elapsed * 2.0).sin() * 0.5 + 1.0) / 4.0,
+                    ],
+                    position: [
+                        ((elapsed + i as f32 * std::f32::consts::FRAC_PI_6).sin() * 0.5 + 1.0)
+                            / 2.0,
+                        ((elapsed + i as f32 * std::f32::consts::FRAC_PI_6).cos() * 0.5 + 1.0)
+                            / 2.0,
+                    ],
+                    ..Default::default()
+                },
+            );
+        }
     }
 }
 

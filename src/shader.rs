@@ -10,7 +10,8 @@ impl Shader {
             &ctx.device,
             ctx.config.format,
             source,
-            &ctx.bind_group_layout,
+            &ctx.texture_bind_group_layout,
+            &ctx.mvp_bind_group_layout,
         ));
         Shader {
             pipeline_id: ctx.pipeline_store.len() - 1,

@@ -1,5 +1,5 @@
 use image::GenericImageView;
-use oblivion::{GraphicsContext, Image, Render, Shader};
+use oblivion::{GraphicsContext, Image, Render, Shader, Transform};
 #[path = "common.rs"]
 mod common;
 
@@ -29,7 +29,7 @@ impl common::Example for DrawImageExample {
         }
     }
 
-    fn draw(&self, render: &mut Render) {
+    fn draw(&self, ctx: &mut GraphicsContext, render: &mut Render) {
         oblivion::clear(
             render,
             wgpu::Color {
@@ -42,7 +42,7 @@ impl common::Example for DrawImageExample {
         if self.with_shader {
             oblivion::push_shader(render, &self.shader);
         }
-        self.image.draw(render);
+        self.image.draw(ctx, render, Transform::default());
         if self.with_shader {
             oblivion::pop_shader(render);
         }

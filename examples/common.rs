@@ -3,7 +3,7 @@ use winit::event::{Event, VirtualKeyCode, WindowEvent};
 
 pub trait Example {
     fn setup(ctx: &mut GraphicsContext) -> Self;
-    fn draw(&self, render: &mut Render);
+    fn draw(&self, ctx: &mut GraphicsContext, render: &mut Render);
 }
 
 pub fn run<E: Example + 'static>() {
@@ -51,7 +51,7 @@ pub fn run<E: Example + 'static>() {
                 frame_count = 0;
             }
             let mut render = Render::new();
-            ex.draw(&mut render);
+            ex.draw(&mut ctx, &mut render);
             ctx.submit_render(render);
             frame_count += 1;
         }

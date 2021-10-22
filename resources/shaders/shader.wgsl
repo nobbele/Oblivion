@@ -6,6 +6,13 @@ struct VertexInput {
     [[location(2)]] uv: vec2<f32>;
 };
 
+[[block]]
+struct Uniform {
+    mvp: mat4x4<f32>;
+};
+[[group(1), binding(0)]]
+var<uniform> uniform: Uniform;
+
 struct VertexOutput {
     [[builtin(position)]] clip_position: vec4<f32>;
     [[location(0)]] color: vec3<f32>;
@@ -19,7 +26,7 @@ fn main(
     var out: VertexOutput;
     out.color = model.color;
     out.uv = model.uv;
-    out.clip_position = vec4<f32>(model.position, 0.0, 1.0);
+    out.clip_position = uniform.mvp * vec4<f32>(model.position, 0.0, 1.0);
     return out;
 }
 

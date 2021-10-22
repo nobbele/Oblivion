@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use crate::{
     helpers::{create_pipeline, get_adapter_surface, get_device_queue},
-    MeshBuffer, Render, RenderData, QUAD_INDICES, QUAD_VERTICES,
+    InstanceData, MeshBuffer, Render, RenderData, QUAD_INDICES, QUAD_VERTICES,
 };
 
 pub struct GraphicsContext {
@@ -13,7 +13,8 @@ pub struct GraphicsContext {
     pub(crate) config: wgpu::SurfaceConfiguration,
 
     pub(crate) pipeline_store: Vec<wgpu::RenderPipeline>,
-    pub(crate) bind_group_layout: wgpu::BindGroupLayout,
+    pub(crate) texture_bind_group_layout: wgpu::BindGroupLayout,
+    pub(crate) mvp_bind_group_layout: wgpu::BindGroupLayout,
 
     pub(crate) quad_mesh_buffer: Rc<MeshBuffer>,
 }
@@ -43,36 +44,52 @@ impl GraphicsContext {
 
         surface.configure(&device, &config);
 
-        let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            entries: &[
-                wgpu::BindGroupLayoutEntry {
+        let texture_bind_group_layout =
+            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                entries: &[
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 0,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Texture {
+                            multisampled: false,
+                            view_dimension: wgpu::TextureViewDimension::D2,
+                            sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                        },
+                        count: None,
+                    },
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 1,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Sampler {
+                            comparison: false,
+                            filtering: true,
+                        },
+                        count: None,
+                    },
+                ],
+                label: Some("Oblivion_TextureBindGroupLayout"),
+            });
+        let mvp_bind_group_layout =
+            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                entries: &[wgpu::BindGroupLayoutEntry {
                     binding: 0,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Texture {
-                        multisampled: false,
-                        view_dimension: wgpu::TextureViewDimension::D2,
-                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                    visibility: wgpu::ShaderStages::VERTEX,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
                     },
                     count: None,
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 1,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Sampler {
-                        comparison: false,
-                        filtering: true,
-                    },
-                    count: None,
-                },
-            ],
-            label: Some("Oblivion_MeshBindGroupLayout"),
-        });
+                }],
+                label: Some("Oblivion_MVPBindGroupLayout"),
+            });
 
         let standard_pipeline = create_pipeline(
             &device,
             config.format,
             wgpu::ShaderSource::Wgsl(include_str!("../resources/shaders/shader.wgsl").into()),
-            &bind_group_layout,
+            &texture_bind_group_layout,
+            &mvp_bind_group_layout,
         );
 
         let pipeline_store = vec![standard_pipeline];
@@ -86,7 +103,8 @@ impl GraphicsContext {
             config,
             pipeline_store,
             quad_mesh_buffer: Rc::new(quad_mesh_buffer),
-            bind_group_layout,
+            texture_bind_group_layout,
+            mvp_bind_group_layout,
         }
     }
 
@@ -125,11 +143,16 @@ impl GraphicsContext {
 
             for RenderData {
                 pipeline_data,
-                instance_data,
+                instance_data:
+                    InstanceData {
+                        pipeline_id,
+                        transform,
+                    },
             } in &render.queue
             {
-                render_pass.set_pipeline(&self.pipeline_store[instance_data.pipeline_id]);
+                render_pass.set_pipeline(&self.pipeline_store[*pipeline_id]);
                 render_pass.set_bind_group(0, &pipeline_data.bind_group, &[]);
+                render_pass.set_bind_group(1, &transform, &[]);
                 render_pass.set_vertex_buffer(0, pipeline_data.mesh_buffer.vertex.0.slice(..));
                 render_pass.set_index_buffer(
                     pipeline_data.mesh_buffer.index.0.slice(..),
