@@ -149,6 +149,11 @@ impl Render {
 
     // TODO somehow don't create an MVP buffer every draw call?
     // TODO preallocate??
+
+    // TODO maybe we can calculate a buffer in submit_render.
+    // TODO then we can index, write and reference that buffer.
+    // TODO which would allow us to remove the ctx parameter on here and .draw().
+    // TODO and it would probably be a whole lot faster.
     pub(crate) fn push_data(
         &mut self,
         ctx: &mut GraphicsContext,
