@@ -29,7 +29,7 @@ impl common::Example for DrawImageExample {
         }
     }
 
-    fn draw(&self, ctx: &mut GraphicsContext, render: &mut Render) {
+    fn draw(&self, render: &mut Render) {
         oblivion::clear(
             render,
             wgpu::Color {
@@ -42,7 +42,7 @@ impl common::Example for DrawImageExample {
         if self.with_shader {
             oblivion::push_shader(render, &self.shader);
         }
-        self.image.draw(ctx, render, Transform::default());
+        self.image.draw(render, Transform::default());
         if self.with_shader {
             oblivion::pop_shader(render);
         }

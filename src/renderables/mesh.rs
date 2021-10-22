@@ -146,7 +146,7 @@ impl Mesh {
         }
     }
 
-    pub fn draw(&self, ctx: &mut GraphicsContext, render: &mut Render, transform: Transform) {
-        render.push_data(ctx, self.data.clone(), transform);
+    pub fn draw(&self, render: &mut Render, transform: Transform) {
+        render.push_data(self.data.clone(), transform);
     }
 }

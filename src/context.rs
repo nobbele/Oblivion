@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::{num::NonZeroU64, rc::Rc};
 
 use crate::{
     helpers::{create_pipeline, get_adapter_surface, get_device_queue},
@@ -118,6 +118,17 @@ impl GraphicsContext {
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
 
+        type UniformType = [[f32; 4]; 4];
+        const UNIFORM_SIZE: usize = std::mem::size_of::<UniformType>();
+        const UNIFORM_ALIGNMENT: wgpu::BufferAddress = 256;
+        let uniform_buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("Oblivion_UniformBuffer"),
+            size: render.queue.len() as wgpu::BufferAddress * UNIFORM_ALIGNMENT,
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: true,
+        });
+        let mut bind_groups = Vec::new();
+
         let mut encoder = self
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor {
@@ -141,15 +152,52 @@ impl GraphicsContext {
                 depth_stencil_attachment: None,
             });
 
-            for RenderData {
-                pipeline_data,
-                instance_data:
-                    InstanceData {
-                        pipeline_id,
-                        transform,
-                    },
-            } in &render.queue
+            for (
+                idx,
+                RenderData {
+                    instance_data: InstanceData { transform, .. },
+                    ..
+                },
+            ) in render.queue.iter().enumerate()
             {
+                let idx = idx as wgpu::BufferAddress;
+                let mvp = glam::Mat4::from_scale_rotation_translation(
+                    glam::vec3(transform.scale[0], transform.scale[1], 1.0),
+                    glam::Quat::from_rotation_z(transform.rotation),
+                    glam::vec3(
+                        transform.position[0] * 2.0 - 1.0,
+                        transform.position[1] * 2.0 - 1.0,
+                        0.0,
+                    ),
+                );
+                uniform_buffer
+                    .slice(idx * UNIFORM_ALIGNMENT..(idx + 1) * UNIFORM_ALIGNMENT)
+                    .get_mapped_range_mut()[0..UNIFORM_SIZE]
+                    .copy_from_slice(bytemuck::cast_slice(&mvp.to_cols_array_2d()));
+                bind_groups.push(self.device.create_bind_group(&wgpu::BindGroupDescriptor {
+                    layout: &self.mvp_bind_group_layout,
+                    entries: &[wgpu::BindGroupEntry {
+                        binding: 0,
+                        resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
+                            buffer: &uniform_buffer,
+                            offset: idx * UNIFORM_ALIGNMENT,
+                            size: Some(NonZeroU64::new(UNIFORM_ALIGNMENT).unwrap()),
+                        }),
+                    }],
+                    label: Some("Oblivion_MVPBindGroup"),
+                }));
+            }
+            uniform_buffer.unmap();
+
+            for (
+                idx,
+                RenderData {
+                    pipeline_data,
+                    instance_data: InstanceData { pipeline_id, .. },
+                },
+            ) in render.queue.iter().enumerate()
+            {
+                let transform = &bind_groups[idx];
                 render_pass.set_pipeline(&self.pipeline_store[*pipeline_id]);
                 render_pass.set_bind_group(0, &pipeline_data.bind_group, &[]);
                 render_pass.set_bind_group(1, &transform, &[]);

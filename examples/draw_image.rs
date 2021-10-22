@@ -17,7 +17,7 @@ impl common::Example for DrawImageExample {
         DrawImageExample { image }
     }
 
-    fn draw(&self, ctx: &mut GraphicsContext, render: &mut Render) {
+    fn draw(&self, render: &mut Render) {
         oblivion::clear(
             render,
             wgpu::Color {
@@ -27,7 +27,7 @@ impl common::Example for DrawImageExample {
                 a: 1.0,
             },
         );
-        self.image.draw(ctx, render, Transform::default());
+        self.image.draw(render, Transform::default());
     }
 }
 

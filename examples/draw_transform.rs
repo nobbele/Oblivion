@@ -23,7 +23,7 @@ impl common::Example for DrawImageExample {
         }
     }
 
-    fn draw(&self, ctx: &mut GraphicsContext, render: &mut Render) {
+    fn draw(&self, render: &mut Render) {
         oblivion::clear(
             render,
             wgpu::Color {
@@ -36,7 +36,6 @@ impl common::Example for DrawImageExample {
         let elapsed = self.start.elapsed().as_secs_f32() * 2.0;
         for i in 0..12 {
             self.image.draw(
-                ctx,
                 render,
                 Transform {
                     scale: [

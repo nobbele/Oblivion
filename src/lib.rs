@@ -127,7 +127,7 @@ pub(crate) struct PipelineData {
 /// This is unique between .draw() calls
 pub(crate) struct InstanceData {
     pub pipeline_id: usize,
-    pub transform: wgpu::BindGroup,
+    pub transform: Transform,
 }
 
 pub(crate) struct RenderData {
@@ -147,49 +147,12 @@ impl Render {
         Render::default()
     }
 
-    // TODO somehow don't create an MVP buffer every draw call?
-    // TODO preallocate??
-
-    // TODO maybe we can calculate a buffer in submit_render.
-    // TODO then we can index, write and reference that buffer.
-    // TODO which would allow us to remove the ctx parameter on here and .draw().
-    // TODO and it would probably be a whole lot faster.
-    pub(crate) fn push_data(
-        &mut self,
-        ctx: &mut GraphicsContext,
-        pipeline_data: Rc<PipelineData>,
-        transform: Transform,
-    ) {
-        let mvp = glam::Mat4::from_scale_rotation_translation(
-            glam::vec3(transform.scale[0], transform.scale[1], 1.0),
-            glam::Quat::from_rotation_z(transform.rotation),
-            glam::vec3(
-                transform.position[0] * 2.0 - 1.0,
-                transform.position[1] * 2.0 - 1.0,
-                0.0,
-            ),
-        );
-        let mvp_buffer = ctx
-            .device
-            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: Some("Oblivion_MVPBuffer"),
-                contents: bytemuck::cast_slice(&mvp.to_cols_array_2d()),
-                usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-            });
-        let mvp_bind_group = ctx.device.create_bind_group(&wgpu::BindGroupDescriptor {
-            layout: &ctx.mvp_bind_group_layout,
-            entries: &[wgpu::BindGroupEntry {
-                binding: 0,
-                resource: mvp_buffer.as_entire_binding(),
-            }],
-            label: Some("Oblivion_MVPBindGroup"),
-        });
-
+    pub(crate) fn push_data(&mut self, pipeline_data: Rc<PipelineData>, transform: Transform) {
         self.queue.push(RenderData {
             pipeline_data,
             instance_data: InstanceData {
                 pipeline_id: self.shader_queue.last().copied().unwrap_or(0),
-                transform: mvp_bind_group,
+                transform,
             },
         })
     }
