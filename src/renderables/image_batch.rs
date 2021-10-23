@@ -85,7 +85,6 @@ impl ImageBatch {
             let instance_buffer = Rc::new(ctx.device.create_buffer(&wgpu::BufferDescriptor {
                 label: Some("Oblivion_ImageBatchInstanceBuffer"),
                 usage: wgpu::BufferUsages::VERTEX
-                    | wgpu::BufferUsages::MAP_WRITE
                     | wgpu::BufferUsages::COPY_SRC
                     | wgpu::BufferUsages::COPY_DST,
                 size: new_capacity * INSTANCE_SIZE as u64,
@@ -102,7 +101,7 @@ impl ImageBatch {
                 0,
                 &instance_buffer,
                 0,
-                self.instance_buffer_capacity * INSTANCE_SIZE as u64,
+                self.instance_buffer_count * INSTANCE_SIZE as u64,
             );
             ctx.queue.submit(std::iter::once(command_encoder.finish()));
 
@@ -114,27 +113,21 @@ impl ImageBatch {
             self.instance_buffer_capacity = new_capacity;
         }
 
-        let fut = self
-            .data
-            .instance_buffer
-            .slice(..)
-            .map_async(wgpu::MapMode::Write);
-        ctx.device.poll(wgpu::Maintain::Wait);
-        pollster::block_on(fut).unwrap();
-
+        let mut transform_data = vec![0; transforms.len() * INSTANCE_SIZE];
+        for (transform, transform_data_slice) in transforms
+            .iter()
+            .zip(transform_data.chunks_exact_mut(INSTANCE_SIZE))
         {
-            let prev_end = self.instance_buffer_count as usize * INSTANCE_SIZE;
-            let mut instance_view = self.data.instance_buffer.slice(..).get_mapped_range_mut();
-            for (idx, transform) in transforms.iter().enumerate() {
-                instance_view
-                    [prev_end + (idx * INSTANCE_SIZE)..prev_end + ((idx + 1) * INSTANCE_SIZE)]
-                    .copy_from_slice(bytemuck::cast_slice(
-                        &transform.as_matrix().to_cols_array_2d(),
-                    ));
-            }
+            transform_data_slice.copy_from_slice(bytemuck::cast_slice(
+                &transform.as_matrix().to_cols_array_2d(),
+            ));
         }
+        ctx.queue.write_buffer(
+            &self.data.instance_buffer,
+            self.instance_buffer_count * INSTANCE_SIZE as u64,
+            &transform_data,
+        );
 
-        self.data.instance_buffer.unmap();
         self.instance_buffer_count = new_count;
     }
 
