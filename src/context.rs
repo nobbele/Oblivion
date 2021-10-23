@@ -131,7 +131,7 @@ impl GraphicsContext {
                 label: Some("Oblivion_IdentityInstanceBuffer"),
                 usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::MAP_WRITE,
                 contents: bytemuck::cast_slice(&[dbg!(
-                    Transform::default().to_matrix().to_cols_array_2d()
+                    Transform::default().as_matrix().to_cols_array_2d()
                 )]),
             },
         ));
@@ -218,7 +218,7 @@ impl GraphicsContext {
                 depth_stencil_attachment: None,
             });
 
-            if render.queue.len() > 0 {
+            if !render.queue.is_empty() {
                 let fut = self
                     .uniform_buffer
                     .slice(..render.queue.len() as wgpu::BufferAddress * uniform_alignment)
@@ -240,7 +240,7 @@ impl GraphicsContext {
                         .slice(idx * uniform_alignment..(idx + 1) * uniform_alignment)
                         .get_mapped_range_mut()[0..UNIFORM_SIZE]
                         .copy_from_slice(bytemuck::cast_slice(
-                            &transform.to_matrix().to_cols_array_2d(),
+                            &transform.as_matrix().to_cols_array_2d(),
                         ));
                 }
                 self.uniform_buffer.unmap();

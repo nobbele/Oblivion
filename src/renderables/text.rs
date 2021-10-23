@@ -141,12 +141,9 @@ impl Text {
                         vertex_data.pixel_coords.max.y,
                     ],
                 ];
-                for i in 0..pixel_coords.len() {
+                for pixel_coord in &mut pixel_coords {
                     // TODO fix this
-                    pixel_coords[i] = [
-                        pixel_coords[i][0] / 200.0,
-                        1.0 - (pixel_coords[i][1] / 200.0),
-                    ]
+                    *pixel_coord = [pixel_coord[0] / 200.0, 1.0 - (pixel_coord[1] / 200.0)]
                 }
                 let uv_coords: [[f32; 2]; 4] = [
                     [vertex_data.tex_coords.min.x, vertex_data.tex_coords.min.y],
@@ -234,7 +231,7 @@ impl Text {
             pipeline_data: PipelineData {
                 mesh_buffer: Rc::new(mesh_buffer),
                 bind_group: Rc::new(bind_group),
-                instance_buffer: ctx.identity_instance_buffer.clone(),
+                instance_buffer: Rc::clone(&ctx.identity_instance_buffer),
             },
         }
     }

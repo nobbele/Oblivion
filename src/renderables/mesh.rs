@@ -141,7 +141,7 @@ impl Mesh {
             data: PipelineData {
                 mesh_buffer: Rc::new(mesh_buffer),
                 bind_group: Rc::new(bind_group),
-                instance_buffer: ctx.identity_instance_buffer.clone(),
+                instance_buffer: Rc::clone(&ctx.identity_instance_buffer),
             },
         }
     }

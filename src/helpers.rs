@@ -35,7 +35,7 @@ pub fn get_device_queue(adapter: &Adapter) -> (Device, Queue) {
     .expect("Unable to create device")
 }
 
-pub fn create_pipeline<'a>(
+pub fn create_pipeline(
     device: &Device,
     format: wgpu::TextureFormat,
     source: wgpu::ShaderSource,
@@ -49,7 +49,7 @@ pub fn create_pipeline<'a>(
 
     let render_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
         label: Some("Oblivion_RenderPipelineLayout"),
-        bind_group_layouts: &[&texture_bind_group_layout, mvp_bind_group_layout],
+        bind_group_layouts: &[texture_bind_group_layout, mvp_bind_group_layout],
         push_constant_ranges: &[],
     });
 

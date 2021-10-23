@@ -59,9 +59,9 @@ impl Image {
 
         Image {
             data: PipelineData {
-                mesh_buffer: ctx.quad_mesh_buffer.clone(),
+                mesh_buffer: Rc::clone(&ctx.quad_mesh_buffer),
                 bind_group: Rc::new(bind_group),
-                instance_buffer: ctx.identity_instance_buffer.clone(),
+                instance_buffer: Rc::clone(&ctx.identity_instance_buffer),
             },
         }
     }

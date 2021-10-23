@@ -68,9 +68,9 @@ impl ImageBatch {
 
         ImageBatch {
             data: PipelineData {
-                mesh_buffer: ctx.quad_mesh_buffer.clone(),
+                mesh_buffer: Rc::clone(&ctx.quad_mesh_buffer),
                 bind_group: Rc::new(bind_group),
-                instance_buffer: instance_buffer.clone(),
+                instance_buffer: Rc::clone(&instance_buffer),
             },
             instance_buffer_capacity: 0,
             instance_buffer_count: 0,
@@ -106,9 +106,9 @@ impl ImageBatch {
             ctx.queue.submit(std::iter::once(command_encoder.finish()));
 
             self.data = PipelineData {
-                instance_buffer: instance_buffer.clone(),
-                mesh_buffer: self.data.mesh_buffer.clone(),
-                bind_group: self.data.bind_group.clone(),
+                instance_buffer: Rc::clone(&instance_buffer),
+                mesh_buffer: Rc::clone(&self.data.mesh_buffer),
+                bind_group: Rc::clone(&self.data.bind_group),
             };
             self.instance_buffer_capacity = new_capacity;
         }
@@ -128,7 +128,7 @@ impl ImageBatch {
                 instance_view
                     [prev_end + (idx * INSTANCE_SIZE)..prev_end + ((idx + 1) * INSTANCE_SIZE)]
                     .copy_from_slice(bytemuck::cast_slice(
-                        &transform.to_matrix().to_cols_array_2d(),
+                        &transform.as_matrix().to_cols_array_2d(),
                     ));
             }
         }

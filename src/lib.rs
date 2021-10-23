@@ -141,7 +141,7 @@ pub struct Transform {
 }
 
 impl Transform {
-    pub(crate) fn to_matrix(&self) -> glam::Mat4 {
+    pub(crate) fn as_matrix(&self) -> glam::Mat4 {
         glam::Mat4::from_scale_rotation_translation(
             glam::vec3(self.scale[0], self.scale[1], 1.0),
             glam::Quat::from_rotation_z(self.rotation),
