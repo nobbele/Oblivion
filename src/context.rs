@@ -1,8 +1,10 @@
 use std::{num::NonZeroU64, rc::Rc};
 
+use wgpu::util::DeviceExt;
+
 use crate::{
     helpers::{create_pipeline, get_adapter_surface, get_device_queue},
-    DrawData, MeshBuffer, Render, RenderData, QUAD_INDICES, QUAD_VERTICES,
+    DrawData, MeshBuffer, Render, RenderData, Transform, QUAD_INDICES, QUAD_VERTICES,
 };
 
 type UniformType = [[f32; 4]; 4];
@@ -20,6 +22,7 @@ pub struct GraphicsContext {
     pub(crate) mvp_bind_group_layout: wgpu::BindGroupLayout,
 
     pub(crate) quad_mesh_buffer: Rc<MeshBuffer>,
+    pub(crate) identity_instance_buffer: Rc<wgpu::Buffer>,
 
     uniform_alignment: u32,
     uniform_buffer: wgpu::Buffer,
@@ -123,6 +126,16 @@ impl GraphicsContext {
 
         let uniform_alignment = device.limits().min_uniform_buffer_offset_alignment;
 
+        let identity_instance_buffer = Rc::new(device.create_buffer_init(
+            &wgpu::util::BufferInitDescriptor {
+                label: Some("Oblivion_IdentityInstanceBuffer"),
+                usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::MAP_WRITE,
+                contents: bytemuck::cast_slice(&[dbg!(
+                    Transform::default().to_matrix().to_cols_array_2d()
+                )]),
+            },
+        ));
+
         GraphicsContext {
             surface,
             device,
@@ -132,6 +145,8 @@ impl GraphicsContext {
             quad_mesh_buffer: Rc::new(quad_mesh_buffer),
             texture_bind_group_layout,
             mvp_bind_group_layout,
+
+            identity_instance_buffer,
 
             uniform_buffer,
             uniform_buffer_count: 0,
@@ -220,19 +235,13 @@ impl GraphicsContext {
                 ) in render.queue.iter().enumerate()
                 {
                     let idx = idx as wgpu::BufferAddress;
-                    let mvp = glam::Mat4::from_scale_rotation_translation(
-                        glam::vec3(transform.scale[0], transform.scale[1], 1.0),
-                        glam::Quat::from_rotation_z(transform.rotation),
-                        glam::vec3(
-                            transform.position[0] * 2.0 - 1.0,
-                            transform.position[1] * 2.0 - 1.0,
-                            0.0,
-                        ),
-                    );
+                    // TODO how to use Affine2??
                     self.uniform_buffer
                         .slice(idx * uniform_alignment..(idx + 1) * uniform_alignment)
                         .get_mapped_range_mut()[0..UNIFORM_SIZE]
-                        .copy_from_slice(bytemuck::cast_slice(&mvp.to_cols_array_2d()));
+                        .copy_from_slice(bytemuck::cast_slice(
+                            &transform.to_matrix().to_cols_array_2d(),
+                        ));
                 }
                 self.uniform_buffer.unmap();
 
@@ -240,6 +249,7 @@ impl GraphicsContext {
                     idx,
                     RenderData {
                         pipeline_data,
+                        instance_count,
                         instance_data: DrawData { pipeline_id, .. },
                     },
                 ) in render.queue.iter().enumerate()
@@ -248,11 +258,16 @@ impl GraphicsContext {
                     render_pass.set_bind_group(0, &pipeline_data.bind_group, &[]);
                     render_pass.set_bind_group(1, &self.uniform_bind_groups[idx], &[]);
                     render_pass.set_vertex_buffer(0, pipeline_data.mesh_buffer.vertex.0.slice(..));
+                    render_pass.set_vertex_buffer(1, pipeline_data.instance_buffer.slice(..));
                     render_pass.set_index_buffer(
                         pipeline_data.mesh_buffer.index.0.slice(..),
                         wgpu::IndexFormat::Uint16,
                     );
-                    render_pass.draw_indexed(0..pipeline_data.mesh_buffer.index.1, 0, 0..1);
+                    render_pass.draw_indexed(
+                        0..pipeline_data.mesh_buffer.index.1,
+                        0,
+                        0..*instance_count,
+                    );
                 }
             }
         }

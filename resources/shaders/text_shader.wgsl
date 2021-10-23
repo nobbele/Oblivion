@@ -6,6 +6,13 @@ struct VertexInput {
     [[location(2)]] uv: vec2<f32>;
 };
 
+struct InstanceInput {
+    [[location(5)]] matrix_0: vec4<f32>;
+    [[location(6)]] matrix_1: vec4<f32>;
+    [[location(7)]] matrix_2: vec4<f32>;
+    [[location(8)]] matrix_3: vec4<f32>;
+};
+
 [[block]]
 struct Uniform {
     mvp: mat4x4<f32>;
@@ -22,11 +29,21 @@ struct VertexOutput {
 [[stage(vertex)]]
 fn main(
     model: VertexInput,
+    instance: InstanceInput,
 ) -> VertexOutput {
+    let instance_matrix = mat4x4<f32>(
+        instance.matrix_0,
+        instance.matrix_1,
+        instance.matrix_2,
+        instance.matrix_3,
+    );
+
     var out: VertexOutput;
     out.color = model.color;
     out.uv = model.uv;
-    out.clip_position = uniform.mvp * vec4<f32>(model.position, 0.0, 1.0);
+    var instance_position = instance_matrix * vec4<f32>(model.position, 0.0, 1.0);
+    // why the + 1.0?
+    out.clip_position = uniform.mvp * vec4<f32>(instance_position.x + 1.0, instance_position.y + 1.0, 0.0, 1.0);
     return out;
 }
 

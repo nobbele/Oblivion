@@ -31,7 +31,7 @@ impl common::Example for DrawImageExample {
             render,
             Transform {
                 position: [0.5, 0.5],
-                scale: [0.5, 0.5],
+                scale: [0.25, 0.25],
                 ..Default::default()
             },
         );

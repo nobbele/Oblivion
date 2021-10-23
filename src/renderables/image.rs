@@ -6,7 +6,7 @@ use crate::{GraphicsContext, PipelineData, Render, Transform};
 
 pub struct Image {
     //imp: Rc<ImageImpl>,
-    data: Rc<PipelineData>,
+    data: PipelineData,
 }
 
 impl Image {
@@ -58,14 +58,15 @@ impl Image {
         });
 
         Image {
-            data: Rc::new(PipelineData {
+            data: PipelineData {
                 mesh_buffer: ctx.quad_mesh_buffer.clone(),
-                bind_group,
-            }),
+                bind_group: Rc::new(bind_group),
+                instance_buffer: ctx.identity_instance_buffer.clone(),
+            },
         }
     }
 
     pub fn draw(&self, render: &mut Render, transform: Transform) {
-        render.push_data(self.data.clone(), transform, 0);
+        render.push_data(self.data.clone(), 1, transform, 0);
     }
 }

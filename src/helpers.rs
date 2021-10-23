@@ -4,7 +4,7 @@ use wgpu::{
     Surface,
 };
 
-use crate::Vertex;
+use crate::{instance_desc, Vertex};
 
 // TODO Result
 pub fn get_adapter_surface(
@@ -59,7 +59,7 @@ pub fn create_pipeline<'a>(
         vertex: wgpu::VertexState {
             module: &shader,
             entry_point: "main",
-            buffers: &[Vertex::desc()],
+            buffers: &[Vertex::desc(), instance_desc()],
         },
         fragment: Some(wgpu::FragmentState {
             module: &shader,

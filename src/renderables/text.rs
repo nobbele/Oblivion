@@ -5,7 +5,7 @@ use glyph_brush::{ab_glyph::FontArc, GlyphBrushBuilder, Section};
 use crate::{GraphicsContext, MeshBuffer, PipelineData, Render, Transform, Vertex};
 
 pub struct Text {
-    pipeline_data: Rc<PipelineData>,
+    pipeline_data: PipelineData,
 }
 
 impl Text {
@@ -231,14 +231,15 @@ impl Text {
         });
 
         Text {
-            pipeline_data: Rc::new(PipelineData {
+            pipeline_data: PipelineData {
                 mesh_buffer: Rc::new(mesh_buffer),
-                bind_group,
-            }),
+                bind_group: Rc::new(bind_group),
+                instance_buffer: ctx.identity_instance_buffer.clone(),
+            },
         }
     }
 
     pub fn draw(&self, render: &mut Render, transform: Transform) {
-        render.push_data(self.pipeline_data.clone(), transform, 1);
+        render.push_data(self.pipeline_data.clone(), 1, transform, 1);
     }
 }

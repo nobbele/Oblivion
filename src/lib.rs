@@ -9,6 +9,38 @@ pub(crate) mod helpers;
 mod renderables;
 mod shader;
 
+pub(crate) type InstanceType = [[f32; 4]; 4];
+pub(crate) const INSTANCE_SIZE: usize = std::mem::size_of::<InstanceType>();
+
+fn instance_desc<'a>() -> wgpu::VertexBufferLayout<'a> {
+    wgpu::VertexBufferLayout {
+        array_stride: INSTANCE_SIZE as u64,
+        step_mode: wgpu::VertexStepMode::Instance,
+        attributes: &[
+            wgpu::VertexAttribute {
+                offset: 0,
+                shader_location: 5,
+                format: wgpu::VertexFormat::Float32x4,
+            },
+            wgpu::VertexAttribute {
+                offset: std::mem::size_of::<[f32; 4]>() as wgpu::BufferAddress,
+                shader_location: 6,
+                format: wgpu::VertexFormat::Float32x4,
+            },
+            wgpu::VertexAttribute {
+                offset: std::mem::size_of::<[f32; 8]>() as wgpu::BufferAddress,
+                shader_location: 7,
+                format: wgpu::VertexFormat::Float32x4,
+            },
+            wgpu::VertexAttribute {
+                offset: std::mem::size_of::<[f32; 12]>() as wgpu::BufferAddress,
+                shader_location: 8,
+                format: wgpu::VertexFormat::Float32x4,
+            },
+        ],
+    }
+}
+
 pub(crate) const QUAD_VERTICES: &[Vertex] = &[
     // Top Left
     Vertex {
@@ -108,6 +140,20 @@ pub struct Transform {
     pub rotation: f32,
 }
 
+impl Transform {
+    pub(crate) fn to_matrix(&self) -> glam::Mat4 {
+        glam::Mat4::from_scale_rotation_translation(
+            glam::vec3(self.scale[0], self.scale[1], 1.0),
+            glam::Quat::from_rotation_z(self.rotation),
+            glam::vec3(
+                self.position[0] * 2.0 - 1.0,
+                self.position[1] * 2.0 - 1.0,
+                0.0,
+            ),
+        )
+    }
+}
+
 impl Default for Transform {
     fn default() -> Self {
         Self {
@@ -117,11 +163,12 @@ impl Default for Transform {
         }
     }
 }
-
 /// This is shared between all .draw() calls of the same renderable instance.
+#[derive(Clone)]
 pub(crate) struct PipelineData {
     pub mesh_buffer: Rc<MeshBuffer>,
-    pub bind_group: wgpu::BindGroup,
+    pub bind_group: Rc<wgpu::BindGroup>,
+    pub instance_buffer: Rc<wgpu::Buffer>,
 }
 
 /// This is unique between .draw() calls
@@ -131,7 +178,8 @@ pub(crate) struct DrawData {
 }
 
 pub(crate) struct RenderData {
-    pipeline_data: Rc<PipelineData>,
+    pipeline_data: PipelineData,
+    instance_count: u32,
     instance_data: DrawData,
 }
 
@@ -149,12 +197,14 @@ impl Render {
 
     pub(crate) fn push_data(
         &mut self,
-        pipeline_data: Rc<PipelineData>,
+        pipeline_data: PipelineData,
+        instance_count: u32,
         transform: Transform,
         default_pipeline_id: usize,
     ) {
         self.queue.push(RenderData {
             pipeline_data,
+            instance_count,
             instance_data: DrawData {
                 pipeline_id: self
                     .shader_queue
