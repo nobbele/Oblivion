@@ -5,6 +5,10 @@ use crate::{
     DrawData, MeshBuffer, Render, RenderData, QUAD_INDICES, QUAD_VERTICES,
 };
 
+type UniformType = [[f32; 4]; 4];
+const UNIFORM_SIZE: usize = std::mem::size_of::<UniformType>();
+const UNIFORM_ALIGNMENT: wgpu::BufferAddress = 256;
+
 pub struct GraphicsContext {
     pub(crate) device: wgpu::Device,
     pub(crate) queue: wgpu::Queue,
@@ -17,6 +21,11 @@ pub struct GraphicsContext {
     pub(crate) mvp_bind_group_layout: wgpu::BindGroupLayout,
 
     pub(crate) quad_mesh_buffer: Rc<MeshBuffer>,
+
+    uniform_buffer: wgpu::Buffer,
+    uniform_buffer_count: u64,
+
+    uniform_bind_groups: Vec<wgpu::BindGroup>,
 }
 
 impl GraphicsContext {
@@ -103,6 +112,15 @@ impl GraphicsContext {
 
         let quad_mesh_buffer = MeshBuffer::from_slices(&device, QUAD_VERTICES, QUAD_INDICES);
 
+        let uniform_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("Oblivion_UniformBuffer"),
+            size: 0,
+            usage: wgpu::BufferUsages::UNIFORM
+                | wgpu::BufferUsages::COPY_DST
+                | wgpu::BufferUsages::MAP_WRITE,
+            mapped_at_creation: false,
+        });
+
         GraphicsContext {
             surface,
             device,
@@ -112,11 +130,15 @@ impl GraphicsContext {
             quad_mesh_buffer: Rc::new(quad_mesh_buffer),
             texture_bind_group_layout,
             mvp_bind_group_layout,
+
+            uniform_buffer,
+            uniform_buffer_count: 0,
+            uniform_bind_groups: Vec::new(),
         }
     }
 
     // TODO Result
-    pub fn submit_render(&self, mut render: Render) {
+    pub fn submit_render(&mut self, mut render: Render) {
         let output = self
             .surface
             .get_current_texture()
@@ -125,16 +147,34 @@ impl GraphicsContext {
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
 
-        type UniformType = [[f32; 4]; 4];
-        const UNIFORM_SIZE: usize = std::mem::size_of::<UniformType>();
-        const UNIFORM_ALIGNMENT: wgpu::BufferAddress = 256;
-        let uniform_buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("Oblivion_UniformBuffer"),
-            size: render.queue.len() as wgpu::BufferAddress * UNIFORM_ALIGNMENT,
-            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-            mapped_at_creation: true,
-        });
-        let mut bind_groups = Vec::new();
+        if render.queue.len() as u64 > self.uniform_buffer_count {
+            self.uniform_buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
+                label: Some("Oblivion_UniformBuffer"),
+                size: render.queue.len() as u64 * UNIFORM_ALIGNMENT,
+                usage: wgpu::BufferUsages::UNIFORM
+                    | wgpu::BufferUsages::COPY_DST
+                    | wgpu::BufferUsages::MAP_WRITE,
+                mapped_at_creation: false,
+            });
+            self.uniform_bind_groups = (0..render.queue.len() as u64)
+                .map(|idx| {
+                    self.device.create_bind_group(&wgpu::BindGroupDescriptor {
+                        layout: &self.mvp_bind_group_layout,
+                        entries: &[wgpu::BindGroupEntry {
+                            binding: 0,
+                            resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
+                                buffer: &self.uniform_buffer,
+                                offset: idx * UNIFORM_ALIGNMENT,
+                                size: Some(NonZeroU64::new(UNIFORM_ALIGNMENT).unwrap()),
+                            }),
+                        }],
+                        label: Some("Oblivion_MVPBindGroup"),
+                    })
+                })
+                .collect::<Vec<_>>();
+
+            self.uniform_buffer_count = render.queue.len() as u64;
+        }
 
         let mut encoder = self
             .device
@@ -159,6 +199,13 @@ impl GraphicsContext {
                 depth_stencil_attachment: None,
             });
 
+            let fut = self
+                .uniform_buffer
+                .slice(..render.queue.len() as wgpu::BufferAddress * UNIFORM_ALIGNMENT)
+                .map_async(wgpu::MapMode::Write);
+            self.device.poll(wgpu::Maintain::Wait);
+            pollster::block_on(fut).unwrap();
+
             for (
                 idx,
                 RenderData {
@@ -177,24 +224,12 @@ impl GraphicsContext {
                         0.0,
                     ),
                 );
-                uniform_buffer
+                self.uniform_buffer
                     .slice(idx * UNIFORM_ALIGNMENT..(idx + 1) * UNIFORM_ALIGNMENT)
                     .get_mapped_range_mut()[0..UNIFORM_SIZE]
                     .copy_from_slice(bytemuck::cast_slice(&mvp.to_cols_array_2d()));
-                bind_groups.push(self.device.create_bind_group(&wgpu::BindGroupDescriptor {
-                    layout: &self.mvp_bind_group_layout,
-                    entries: &[wgpu::BindGroupEntry {
-                        binding: 0,
-                        resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
-                            buffer: &uniform_buffer,
-                            offset: idx * UNIFORM_ALIGNMENT,
-                            size: Some(NonZeroU64::new(UNIFORM_ALIGNMENT).unwrap()),
-                        }),
-                    }],
-                    label: Some("Oblivion_MVPBindGroup"),
-                }));
             }
-            uniform_buffer.unmap();
+            self.uniform_buffer.unmap();
 
             for (
                 idx,
@@ -204,10 +239,9 @@ impl GraphicsContext {
                 },
             ) in render.queue.iter().enumerate()
             {
-                let transform = &bind_groups[idx];
                 render_pass.set_pipeline(&self.pipeline_store[*pipeline_id]);
                 render_pass.set_bind_group(0, &pipeline_data.bind_group, &[]);
-                render_pass.set_bind_group(1, &transform, &[]);
+                render_pass.set_bind_group(1, &self.uniform_bind_groups[idx], &[]);
                 render_pass.set_vertex_buffer(0, pipeline_data.mesh_buffer.vertex.0.slice(..));
                 render_pass.set_index_buffer(
                     pipeline_data.mesh_buffer.index.0.slice(..),
