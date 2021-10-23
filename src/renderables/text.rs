@@ -4,6 +4,7 @@ use glyph_brush::{ab_glyph::FontArc, GlyphBrushBuilder, Section};
 
 use crate::{GraphicsContext, MeshBuffer, PipelineData, Render, Transform, Vertex};
 
+/// Renderable text object.
 pub struct Text {
     pipeline_data: PipelineData,
 }

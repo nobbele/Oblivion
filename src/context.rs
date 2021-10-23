@@ -10,6 +10,7 @@ use crate::{
 type UniformType = [[f32; 4]; 4];
 const UNIFORM_SIZE: usize = std::mem::size_of::<UniformType>();
 
+/// Context for graphics. This stores the graphics device, render queue, window surface, and more.
 pub struct GraphicsContext {
     pub(crate) device: wgpu::Device,
     pub(crate) queue: wgpu::Queue,

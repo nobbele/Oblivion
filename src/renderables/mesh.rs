@@ -4,6 +4,7 @@ use wgpu::util::DeviceExt;
 
 use crate::{GraphicsContext, MeshBuffer, PipelineData, Render, Transform, Vertex};
 
+/// Builder for the `Mesh` object.
 #[derive(Default)]
 pub struct MeshBuilder {
     vertex: Vec<Vertex>,
@@ -83,6 +84,7 @@ impl MeshBuilder {
     }
 }
 
+/// Renderable mesh object. Essentially a list of shapes.
 pub struct Mesh {
     data: PipelineData,
 }

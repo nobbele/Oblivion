@@ -4,8 +4,8 @@ use wgpu::util::DeviceExt;
 
 use crate::{GraphicsContext, PipelineData, Render, Transform};
 
+/// Renderable image object.
 pub struct Image {
-    //imp: Rc<ImageImpl>,
     data: PipelineData,
 }
 

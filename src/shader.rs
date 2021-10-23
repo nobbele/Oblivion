@@ -1,5 +1,6 @@
 use crate::{helpers::create_pipeline, GraphicsContext};
 
+/// Shader object.
 pub struct Shader {
     pub(crate) pipeline_id: usize,
 }

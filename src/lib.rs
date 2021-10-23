@@ -70,6 +70,7 @@ pub(crate) const QUAD_VERTICES: &[Vertex] = &[
 
 pub(crate) const QUAD_INDICES: &[u16] = &[0, 1, 2, 1, 3, 2];
 
+/// Vertex data.
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct Vertex {
@@ -133,6 +134,7 @@ impl MeshBuffer {
     }
 }
 
+/// Used to manipulate how an object is rendered.
 #[derive(Debug, Clone, Copy)]
 pub struct Transform {
     pub position: [f32; 2],
@@ -217,6 +219,7 @@ impl Render {
     }
 }
 
+/// Clears the screen with a color.
 pub fn clear(render: &mut Render, color: wgpu::Color) {
     render.clear_color = Some(color);
     // We also need to clear the draw queue to give the illusion of the clear color overwriting everything else
@@ -224,10 +227,12 @@ pub fn clear(render: &mut Render, color: wgpu::Color) {
     render.queue.clear();
 }
 
+/// Sets an active shader. Use `oblivion::pop` to unset it.
 pub fn push_shader(render: &mut Render, shader: &Shader) {
     render.shader_queue.push(shader.pipeline_id);
 }
 
+/// Removes the active shader and goes back to the previous one.
 pub fn pop_shader(render: &mut Render) {
     render.shader_queue.pop();
 }
