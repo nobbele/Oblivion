@@ -148,7 +148,6 @@ impl Text {
                         1.0 - (pixel_coords[i][1] / 200.0),
                     ]
                 }
-                dbg!(pixel_coords);
                 let uv_coords: [[f32; 2]; 4] = [
                     [vertex_data.tex_coords.min.x, vertex_data.tex_coords.min.y],
                     [vertex_data.tex_coords.max.x, vertex_data.tex_coords.min.y],
