@@ -7,8 +7,6 @@ use crate::{
 
 type UniformType = [[f32; 4]; 4];
 const UNIFORM_SIZE: usize = std::mem::size_of::<UniformType>();
-// Get it from limits
-const UNIFORM_ALIGNMENT: wgpu::BufferAddress = 256;
 
 pub struct GraphicsContext {
     pub(crate) device: wgpu::Device,
@@ -23,6 +21,7 @@ pub struct GraphicsContext {
 
     pub(crate) quad_mesh_buffer: Rc<MeshBuffer>,
 
+    uniform_alignment: u32,
     uniform_buffer: wgpu::Buffer,
     uniform_buffer_count: u64,
 
@@ -122,6 +121,8 @@ impl GraphicsContext {
             mapped_at_creation: false,
         });
 
+        let uniform_alignment = device.limits().min_uniform_buffer_offset_alignment;
+
         GraphicsContext {
             surface,
             device,
@@ -135,11 +136,13 @@ impl GraphicsContext {
             uniform_buffer,
             uniform_buffer_count: 0,
             uniform_bind_groups: Vec::new(),
+            uniform_alignment,
         }
     }
 
     // TODO Result
     pub fn submit_render(&mut self, mut render: Render) {
+        let uniform_alignment = self.uniform_alignment as wgpu::BufferAddress;
         let output = self
             .surface
             .get_current_texture()
@@ -151,7 +154,7 @@ impl GraphicsContext {
         if render.queue.len() as u64 > self.uniform_buffer_count {
             self.uniform_buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
                 label: Some("Oblivion_UniformBuffer"),
-                size: render.queue.len() as u64 * UNIFORM_ALIGNMENT,
+                size: render.queue.len() as u64 * uniform_alignment,
                 usage: wgpu::BufferUsages::UNIFORM
                     | wgpu::BufferUsages::COPY_DST
                     | wgpu::BufferUsages::MAP_WRITE,
@@ -165,8 +168,8 @@ impl GraphicsContext {
                             binding: 0,
                             resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
                                 buffer: &self.uniform_buffer,
-                                offset: idx * UNIFORM_ALIGNMENT,
-                                size: Some(NonZeroU64::new(UNIFORM_ALIGNMENT).unwrap()),
+                                offset: idx * uniform_alignment,
+                                size: Some(NonZeroU64::new(uniform_alignment).unwrap()),
                             }),
                         }],
                         label: Some("Oblivion_MVPBindGroup"),
@@ -203,7 +206,7 @@ impl GraphicsContext {
             if render.queue.len() > 0 {
                 let fut = self
                     .uniform_buffer
-                    .slice(..render.queue.len() as wgpu::BufferAddress * UNIFORM_ALIGNMENT)
+                    .slice(..render.queue.len() as wgpu::BufferAddress * uniform_alignment)
                     .map_async(wgpu::MapMode::Write);
                 self.device.poll(wgpu::Maintain::Wait);
                 pollster::block_on(fut).unwrap();
@@ -227,7 +230,7 @@ impl GraphicsContext {
                         ),
                     );
                     self.uniform_buffer
-                        .slice(idx * UNIFORM_ALIGNMENT..(idx + 1) * UNIFORM_ALIGNMENT)
+                        .slice(idx * uniform_alignment..(idx + 1) * uniform_alignment)
                         .get_mapped_range_mut()[0..UNIFORM_SIZE]
                         .copy_from_slice(bytemuck::cast_slice(&mvp.to_cols_array_2d()));
                 }

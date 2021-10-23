@@ -27,7 +27,14 @@ impl common::Example for DrawImageExample {
                 a: 1.0,
             },
         );
-        self.image.draw(render, Transform::default());
+        self.image.draw(
+            render,
+            Transform {
+                position: [0.5, 0.5],
+                scale: [0.5, 0.5],
+                ..Default::default()
+            },
+        );
     }
 }
 
