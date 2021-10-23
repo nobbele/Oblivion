@@ -7,6 +7,7 @@ use crate::{
 
 type UniformType = [[f32; 4]; 4];
 const UNIFORM_SIZE: usize = std::mem::size_of::<UniformType>();
+// Get it from limits
 const UNIFORM_ALIGNMENT: wgpu::BufferAddress = 256;
 
 pub struct GraphicsContext {
@@ -199,55 +200,57 @@ impl GraphicsContext {
                 depth_stencil_attachment: None,
             });
 
-            let fut = self
-                .uniform_buffer
-                .slice(..render.queue.len() as wgpu::BufferAddress * UNIFORM_ALIGNMENT)
-                .map_async(wgpu::MapMode::Write);
-            self.device.poll(wgpu::Maintain::Wait);
-            pollster::block_on(fut).unwrap();
+            if render.queue.len() > 0 {
+                let fut = self
+                    .uniform_buffer
+                    .slice(..render.queue.len() as wgpu::BufferAddress * UNIFORM_ALIGNMENT)
+                    .map_async(wgpu::MapMode::Write);
+                self.device.poll(wgpu::Maintain::Wait);
+                pollster::block_on(fut).unwrap();
 
-            for (
-                idx,
-                RenderData {
-                    instance_data: DrawData { transform, .. },
-                    ..
-                },
-            ) in render.queue.iter().enumerate()
-            {
-                let idx = idx as wgpu::BufferAddress;
-                let mvp = glam::Mat4::from_scale_rotation_translation(
-                    glam::vec3(transform.scale[0], transform.scale[1], 1.0),
-                    glam::Quat::from_rotation_z(transform.rotation),
-                    glam::vec3(
-                        transform.position[0] * 2.0 - 1.0,
-                        transform.position[1] * 2.0 - 1.0,
-                        0.0,
-                    ),
-                );
-                self.uniform_buffer
-                    .slice(idx * UNIFORM_ALIGNMENT..(idx + 1) * UNIFORM_ALIGNMENT)
-                    .get_mapped_range_mut()[0..UNIFORM_SIZE]
-                    .copy_from_slice(bytemuck::cast_slice(&mvp.to_cols_array_2d()));
-            }
-            self.uniform_buffer.unmap();
+                for (
+                    idx,
+                    RenderData {
+                        instance_data: DrawData { transform, .. },
+                        ..
+                    },
+                ) in render.queue.iter().enumerate()
+                {
+                    let idx = idx as wgpu::BufferAddress;
+                    let mvp = glam::Mat4::from_scale_rotation_translation(
+                        glam::vec3(transform.scale[0], transform.scale[1], 1.0),
+                        glam::Quat::from_rotation_z(transform.rotation),
+                        glam::vec3(
+                            transform.position[0] * 2.0 - 1.0,
+                            transform.position[1] * 2.0 - 1.0,
+                            0.0,
+                        ),
+                    );
+                    self.uniform_buffer
+                        .slice(idx * UNIFORM_ALIGNMENT..(idx + 1) * UNIFORM_ALIGNMENT)
+                        .get_mapped_range_mut()[0..UNIFORM_SIZE]
+                        .copy_from_slice(bytemuck::cast_slice(&mvp.to_cols_array_2d()));
+                }
+                self.uniform_buffer.unmap();
 
-            for (
-                idx,
-                RenderData {
-                    pipeline_data,
-                    instance_data: DrawData { pipeline_id, .. },
-                },
-            ) in render.queue.iter().enumerate()
-            {
-                render_pass.set_pipeline(&self.pipeline_store[*pipeline_id]);
-                render_pass.set_bind_group(0, &pipeline_data.bind_group, &[]);
-                render_pass.set_bind_group(1, &self.uniform_bind_groups[idx], &[]);
-                render_pass.set_vertex_buffer(0, pipeline_data.mesh_buffer.vertex.0.slice(..));
-                render_pass.set_index_buffer(
-                    pipeline_data.mesh_buffer.index.0.slice(..),
-                    wgpu::IndexFormat::Uint16,
-                );
-                render_pass.draw_indexed(0..pipeline_data.mesh_buffer.index.1, 0, 0..1);
+                for (
+                    idx,
+                    RenderData {
+                        pipeline_data,
+                        instance_data: DrawData { pipeline_id, .. },
+                    },
+                ) in render.queue.iter().enumerate()
+                {
+                    render_pass.set_pipeline(&self.pipeline_store[*pipeline_id]);
+                    render_pass.set_bind_group(0, &pipeline_data.bind_group, &[]);
+                    render_pass.set_bind_group(1, &self.uniform_bind_groups[idx], &[]);
+                    render_pass.set_vertex_buffer(0, pipeline_data.mesh_buffer.vertex.0.slice(..));
+                    render_pass.set_index_buffer(
+                        pipeline_data.mesh_buffer.index.0.slice(..),
+                        wgpu::IndexFormat::Uint16,
+                    );
+                    render_pass.draw_indexed(0..pipeline_data.mesh_buffer.index.1, 0, 0..1);
+                }
             }
         }
         render.queue.clear();
