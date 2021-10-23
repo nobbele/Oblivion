@@ -26,6 +26,7 @@ pub struct GraphicsContext {
     pub(crate) identity_instance_buffer: Rc<wgpu::Buffer>,
 
     uniform_alignment: u32,
+    uniform_buffer_data: Vec<u8>,
     uniform_buffer: wgpu::Buffer,
     uniform_buffer_count: u64,
 
@@ -119,9 +120,7 @@ impl GraphicsContext {
         let uniform_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Oblivion_UniformBuffer"),
             size: 0,
-            usage: wgpu::BufferUsages::UNIFORM
-                | wgpu::BufferUsages::COPY_DST
-                | wgpu::BufferUsages::MAP_WRITE,
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
 
@@ -130,7 +129,7 @@ impl GraphicsContext {
         let identity_instance_buffer = Rc::new(device.create_buffer_init(
             &wgpu::util::BufferInitDescriptor {
                 label: Some("Oblivion_IdentityInstanceBuffer"),
-                usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::MAP_WRITE,
+                usage: wgpu::BufferUsages::VERTEX,
                 contents: bytemuck::cast_slice(&[
                     Transform::default().as_matrix().to_cols_array_2d(),
                 ]),
@@ -150,6 +149,7 @@ impl GraphicsContext {
             identity_instance_buffer,
 
             uniform_buffer,
+            uniform_buffer_data: Vec::new(),
             uniform_buffer_count: 0,
             uniform_bind_groups: Vec::new(),
             uniform_alignment,
@@ -169,9 +169,7 @@ impl GraphicsContext {
             self.uniform_buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
                 label: Some("Oblivion_UniformBuffer"),
                 size: new_uniform_buffer_count * uniform_alignment,
-                usage: wgpu::BufferUsages::UNIFORM
-                    | wgpu::BufferUsages::COPY_DST
-                    | wgpu::BufferUsages::MAP_WRITE,
+                usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
                 mapped_at_creation: false,
             });
             self.uniform_bind_groups = (0..new_uniform_buffer_count)
@@ -190,6 +188,7 @@ impl GraphicsContext {
                     })
                 })
                 .collect::<Vec<_>>();
+            self.uniform_buffer_data = vec![0; render.queue.len() * uniform_alignment as usize];
 
             println!(
                 "New Uniform Buffer Size: {} -> {}!",
@@ -222,41 +221,21 @@ impl GraphicsContext {
             });
 
             if !render.queue.is_empty() {
-                let fut = self
-                    .uniform_buffer
-                    .slice(..render.queue.len() as wgpu::BufferAddress * uniform_alignment)
-                    .map_async(wgpu::MapMode::Write);
-
-                self.device.poll(wgpu::Maintain::Wait);
-                pollster::block_on(fut).unwrap();
-
+                for (
+                    idx,
+                    RenderData {
+                        instance_data: DrawData { transform, .. },
+                        ..
+                    },
+                ) in render.queue.iter().enumerate()
                 {
-                    let mut uniform_buffer_view = self
-                        .uniform_buffer
-                        .slice(..render.queue.len() as u64 * uniform_alignment)
-                        .get_mapped_range_mut();
-                    for (
-                        idx,
-                        RenderData {
-                            instance_data: DrawData { transform, .. },
-                            ..
-                        },
-                    ) in render.queue.iter().enumerate()
-                    {
-                        //let start = idx as u64 * uniform_alignment;
-                        let start = idx * uniform_alignment as usize;
-                        uniform_buffer_view[start..start + UNIFORM_SIZE].copy_from_slice(
-                            bytemuck::cast_slice(&transform.as_matrix().to_cols_array_2d()),
-                        );
-                        // Somehow this is twice as slow?
-                        /*self.queue.write_buffer(
-                            &self.uniform_buffer,
-                            start,
-                            bytemuck::cast_slice(&transform.as_matrix().to_cols_array_2d()),
-                        )*/
-                    }
+                    let start = idx * uniform_alignment as usize;
+                    self.uniform_buffer_data[start..start + UNIFORM_SIZE].copy_from_slice(
+                        bytemuck::cast_slice(&transform.as_matrix().to_cols_array_2d()),
+                    )
                 }
-                self.uniform_buffer.unmap();
+                self.queue
+                    .write_buffer(&self.uniform_buffer, 0, &self.uniform_buffer_data);
 
                 for (
                     idx,

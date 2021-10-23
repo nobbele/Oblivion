@@ -27,7 +27,7 @@ impl common::Example for DrawImageExample {
                 a: 1.0,
             },
         );
-        for _ in 0..1 {
+        for _ in 0..10000 {
             self.image.draw(
                 render,
                 Transform {
