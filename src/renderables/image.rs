@@ -66,6 +66,6 @@ impl Image {
     }
 
     pub fn draw(&self, render: &mut Render, transform: Transform) {
-        render.push_data(self.data.clone(), transform);
+        render.push_data(self.data.clone(), transform, 0);
     }
 }

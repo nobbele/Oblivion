@@ -125,14 +125,14 @@ pub(crate) struct PipelineData {
 }
 
 /// This is unique between .draw() calls
-pub(crate) struct InstanceData {
+pub(crate) struct DrawData {
     pub pipeline_id: usize,
     pub transform: Transform,
 }
 
 pub(crate) struct RenderData {
     pipeline_data: Rc<PipelineData>,
-    instance_data: InstanceData,
+    instance_data: DrawData,
 }
 
 #[derive(Default)]
@@ -147,11 +147,20 @@ impl Render {
         Render::default()
     }
 
-    pub(crate) fn push_data(&mut self, pipeline_data: Rc<PipelineData>, transform: Transform) {
+    pub(crate) fn push_data(
+        &mut self,
+        pipeline_data: Rc<PipelineData>,
+        transform: Transform,
+        default_pipeline_id: usize,
+    ) {
         self.queue.push(RenderData {
             pipeline_data,
-            instance_data: InstanceData {
-                pipeline_id: self.shader_queue.last().copied().unwrap_or(0),
+            instance_data: DrawData {
+                pipeline_id: self
+                    .shader_queue
+                    .last()
+                    .copied()
+                    .unwrap_or(default_pipeline_id),
                 transform,
             },
         })

@@ -2,7 +2,7 @@ use std::{num::NonZeroU64, rc::Rc};
 
 use crate::{
     helpers::{create_pipeline, get_adapter_surface, get_device_queue},
-    InstanceData, MeshBuffer, Render, RenderData, QUAD_INDICES, QUAD_VERTICES,
+    DrawData, MeshBuffer, Render, RenderData, QUAD_INDICES, QUAD_VERTICES,
 };
 
 pub struct GraphicsContext {
@@ -91,8 +91,15 @@ impl GraphicsContext {
             &texture_bind_group_layout,
             &mvp_bind_group_layout,
         );
+        let text_pipeline = create_pipeline(
+            &device,
+            config.format,
+            wgpu::ShaderSource::Wgsl(include_str!("../resources/shaders/text_shader.wgsl").into()),
+            &texture_bind_group_layout,
+            &mvp_bind_group_layout,
+        );
 
-        let pipeline_store = vec![standard_pipeline];
+        let pipeline_store = vec![standard_pipeline, text_pipeline];
 
         let quad_mesh_buffer = MeshBuffer::from_slices(&device, QUAD_VERTICES, QUAD_INDICES);
 
@@ -155,7 +162,7 @@ impl GraphicsContext {
             for (
                 idx,
                 RenderData {
-                    instance_data: InstanceData { transform, .. },
+                    instance_data: DrawData { transform, .. },
                     ..
                 },
             ) in render.queue.iter().enumerate()
@@ -193,7 +200,7 @@ impl GraphicsContext {
                 idx,
                 RenderData {
                     pipeline_data,
-                    instance_data: InstanceData { pipeline_id, .. },
+                    instance_data: DrawData { pipeline_id, .. },
                 },
             ) in render.queue.iter().enumerate()
             {
