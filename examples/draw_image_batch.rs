@@ -29,14 +29,14 @@ impl common::Example for DrawImageBatchExample {
                 },
             ],
         );
-        batch.add_instance(
-            ctx,
-            &[Transform {
+        let transforms = (0..1)
+            .map(|_| Transform {
                 position: [0.5, 0.5],
                 scale: [0.25, 0.25],
                 ..Default::default()
-            }],
-        );
+            })
+            .collect::<Vec<_>>();
+        batch.add_instance(ctx, &transforms);
         DrawImageBatchExample { batch }
     }
 

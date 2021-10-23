@@ -130,9 +130,9 @@ impl GraphicsContext {
             &wgpu::util::BufferInitDescriptor {
                 label: Some("Oblivion_IdentityInstanceBuffer"),
                 usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::MAP_WRITE,
-                contents: bytemuck::cast_slice(&[dbg!(
-                    Transform::default().as_matrix().to_cols_array_2d()
-                )]),
+                contents: bytemuck::cast_slice(&[
+                    Transform::default().as_matrix().to_cols_array_2d(),
+                ]),
             },
         ));
 
@@ -158,24 +158,22 @@ impl GraphicsContext {
     // TODO Result
     pub fn submit_render(&mut self, mut render: Render) {
         let uniform_alignment = self.uniform_alignment as wgpu::BufferAddress;
-        let output = self
-            .surface
-            .get_current_texture()
-            .expect("Unable to get surface texture");
+        let output = self.surface.get_current_texture().unwrap();
         let view = output
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
 
         if render.queue.len() as u64 > self.uniform_buffer_count {
+            let new_uniform_buffer_count = render.queue.len() as u64 * 2;
             self.uniform_buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
                 label: Some("Oblivion_UniformBuffer"),
-                size: render.queue.len() as u64 * uniform_alignment,
+                size: new_uniform_buffer_count * uniform_alignment,
                 usage: wgpu::BufferUsages::UNIFORM
                     | wgpu::BufferUsages::COPY_DST
                     | wgpu::BufferUsages::MAP_WRITE,
                 mapped_at_creation: false,
             });
-            self.uniform_bind_groups = (0..render.queue.len() as u64)
+            self.uniform_bind_groups = (0..new_uniform_buffer_count)
                 .map(|idx| {
                     self.device.create_bind_group(&wgpu::BindGroupDescriptor {
                         layout: &self.mvp_bind_group_layout,
@@ -192,7 +190,11 @@ impl GraphicsContext {
                 })
                 .collect::<Vec<_>>();
 
-            self.uniform_buffer_count = render.queue.len() as u64;
+            println!(
+                "New Uniform Buffer Size: {} -> {}!",
+                self.uniform_buffer_count, new_uniform_buffer_count
+            );
+            self.uniform_buffer_count = new_uniform_buffer_count;
         }
 
         let mut encoder = self
@@ -223,25 +225,35 @@ impl GraphicsContext {
                     .uniform_buffer
                     .slice(..render.queue.len() as wgpu::BufferAddress * uniform_alignment)
                     .map_async(wgpu::MapMode::Write);
+
                 self.device.poll(wgpu::Maintain::Wait);
                 pollster::block_on(fut).unwrap();
 
-                for (
-                    idx,
-                    RenderData {
-                        instance_data: DrawData { transform, .. },
-                        ..
-                    },
-                ) in render.queue.iter().enumerate()
                 {
-                    let idx = idx as wgpu::BufferAddress;
-                    // TODO how to use Affine2??
-                    self.uniform_buffer
-                        .slice(idx * uniform_alignment..(idx + 1) * uniform_alignment)
-                        .get_mapped_range_mut()[0..UNIFORM_SIZE]
-                        .copy_from_slice(bytemuck::cast_slice(
-                            &transform.as_matrix().to_cols_array_2d(),
-                        ));
+                    let mut uniform_buffer_view = self
+                        .uniform_buffer
+                        .slice(..render.queue.len() as u64 * uniform_alignment)
+                        .get_mapped_range_mut();
+                    for (
+                        idx,
+                        RenderData {
+                            instance_data: DrawData { transform, .. },
+                            ..
+                        },
+                    ) in render.queue.iter().enumerate()
+                    {
+                        //let start = idx as u64 * uniform_alignment;
+                        let start = idx * uniform_alignment as usize;
+                        uniform_buffer_view[start..start + UNIFORM_SIZE].copy_from_slice(
+                            bytemuck::cast_slice(&transform.as_matrix().to_cols_array_2d()),
+                        );
+                        // Somehow this is twice as slow?
+                        /*self.queue.write_buffer(
+                            &self.uniform_buffer,
+                            start,
+                            bytemuck::cast_slice(&transform.as_matrix().to_cols_array_2d()),
+                        )*/
+                    }
                 }
                 self.uniform_buffer.unmap();
 

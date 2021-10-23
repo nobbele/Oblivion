@@ -19,6 +19,8 @@ pub fn get_adapter_surface(
     }))
     .expect("Unable to find adapter");
 
+    println!("Using '{}'", adapter.get_info().name);
+
     (adapter, surface)
 }
 

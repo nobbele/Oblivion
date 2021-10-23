@@ -35,7 +35,7 @@ impl common::Example for DrawImageExample {
     fn update(&mut self) {
         if self.prev.elapsed().as_secs_f32() > 0.1 {
             // Increase by 2%
-            for i in 0..((self.bunnies.len() as f32 * 0.02) as u32).max(1) {
+            for i in 0..((self.bunnies.len() as f32 * 0.02) as u32).max(50) {
                 let n = std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
                     .unwrap()
@@ -90,7 +90,7 @@ impl common::Example for DrawImageExample {
                 render,
                 Transform {
                     position: bunny.position,
-                    scale: [0.125, 0.125],
+                    scale: [1.0 / 12.0, 1.0 / 12.0],
                     ..Default::default()
                 },
             );

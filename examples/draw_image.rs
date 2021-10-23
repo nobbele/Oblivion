@@ -27,14 +27,16 @@ impl common::Example for DrawImageExample {
                 a: 1.0,
             },
         );
-        self.image.draw(
-            render,
-            Transform {
-                position: [0.5, 0.5],
-                scale: [0.25, 0.25],
-                ..Default::default()
-            },
-        );
+        for _ in 0..1 {
+            self.image.draw(
+                render,
+                Transform {
+                    position: [0.5, 0.5],
+                    scale: [0.25, 0.25],
+                    ..Default::default()
+                },
+            );
+        }
     }
 }
 
