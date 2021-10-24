@@ -157,7 +157,8 @@ impl GraphicsContext {
     }
 
     // TODO Result
-    pub fn submit_render(&mut self, mut render: Render) {
+    // Maybe take render as &mut?
+    pub fn submit_render(&mut self, render: Render) {
         let uniform_alignment = self.uniform_alignment as wgpu::BufferAddress;
         let output = self.surface.get_current_texture().unwrap();
         let view = output
@@ -188,7 +189,8 @@ impl GraphicsContext {
                     })
                 })
                 .collect::<Vec<_>>();
-            self.uniform_buffer_data = vec![0; render.queue.len() * uniform_alignment as usize];
+            self.uniform_buffer_data =
+                vec![0; new_uniform_buffer_count as usize * uniform_alignment as usize];
 
             println!(
                 "New Uniform Buffer Size: {} -> {}!",
@@ -263,7 +265,6 @@ impl GraphicsContext {
                 }
             }
         }
-        render.queue.clear();
 
         self.queue.submit(std::iter::once(encoder.finish()));
         output.present();
