@@ -48,6 +48,7 @@ impl common::Example for DrawImageExample {
                         ((elapsed + i as f32 * std::f32::consts::FRAC_PI_6).cos() * 0.5 + 1.0)
                             / 2.0,
                     ],
+                    rotation: elapsed.sin(),
                     ..Default::default()
                 },
             );
