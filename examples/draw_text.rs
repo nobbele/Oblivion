@@ -8,7 +8,8 @@ struct DrawTextExample {
 
 impl common::Example for DrawTextExample {
     fn setup(ctx: &mut GraphicsContext) -> Self {
-        let text = Text::new(ctx);
+        let mut text = Text::new(ctx);
+        text.add_text(ctx, &["Hello World"]);
         DrawTextExample { text }
     }
 
@@ -22,7 +23,13 @@ impl common::Example for DrawTextExample {
                 a: 1.0,
             },
         );
-        self.text.draw(render, Transform::default());
+        self.text.draw(
+            render,
+            Transform {
+                position: [0.5, 0.5],
+                ..Default::default()
+            },
+        );
     }
 }
 

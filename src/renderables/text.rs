@@ -1,6 +1,6 @@
 use std::{num::NonZeroU32, rc::Rc};
 
-use glyph_brush::{ab_glyph::FontArc, GlyphBrushBuilder, Section};
+use glyph_brush::{ab_glyph::FontArc, GlyphBrushBuilder, GlyphCruncher, Section};
 
 use crate::{GraphicsContext, MeshBuffer, PipelineData, Render, Transform, Vertex};
 
@@ -10,24 +10,20 @@ pub struct Text {
 }
 
 impl Text {
-    // TODO make this better
     pub fn new(ctx: &mut GraphicsContext) -> Self {
-        let texture = ctx.device.create_texture(&wgpu::TextureDescriptor {
-            label: Some("Oblivion_TextTexture"),
-            // TODO how to dynamically size this?
-            size: wgpu::Extent3d {
-                width: 256,
-                height: 256,
-                depth_or_array_layers: 1,
+        let (_texture, bind_group) = create_texture(ctx, [1, 1]);
+        let mesh_buffer = MeshBuffer::from_slices(&ctx.device, &[], &[]);
+        Text {
+            pipeline_data: PipelineData {
+                mesh_buffer: Rc::new(mesh_buffer),
+                bind_group: Rc::new(bind_group),
+                instance_buffer: Rc::clone(&ctx.identity_instance_buffer),
             },
-            dimension: wgpu::TextureDimension::D2,
-            format: wgpu::TextureFormat::R8Unorm,
-            usage: wgpu::TextureUsages::COPY_DST | wgpu::TextureUsages::TEXTURE_BINDING,
-            mip_level_count: 1,
-            sample_count: 1,
-        });
+        }
+    }
 
-        // Maybe use Queue::write_texture instead?
+    // Make a add_text + flush method instead?
+    pub fn add_text(&mut self, ctx: &mut GraphicsContext, texts: &[&str]) {
         let mut upload_buffer_size =
             wgpu::COPY_BYTES_PER_ROW_ALIGNMENT as wgpu::BufferAddress * 100;
         let mut upload_buffer = ctx.device.create_buffer(&wgpu::BufferDescriptor {
@@ -40,9 +36,29 @@ impl Text {
         let font = FontArc::try_from_slice(include_bytes!("../../resources/fonts/DejaVuSans.ttf"))
             .unwrap();
         let mut glyph_brush = GlyphBrushBuilder::using_font(font).build();
-        glyph_brush.queue(
-            Section::default().add_text(glyph_brush::Text::new("Hello World").with_scale(48.0)),
-        );
+        let sections = texts
+            .iter()
+            .map(|&text| Section::default().add_text(glyph_brush::Text::new(text).with_scale(72.0)))
+            .collect::<Vec<_>>();
+        for section in &sections {
+            glyph_brush.queue(section);
+        }
+
+        let texture_dimensions = glyph_brush.texture_dimensions();
+        let (texture, bind_group) =
+            create_texture(ctx, [texture_dimensions.0, texture_dimensions.1]);
+        self.pipeline_data.bind_group = Rc::new(bind_group);
+
+        let max_point = sections
+            .iter()
+            .filter_map(|section| glyph_brush.glyph_bounds(section))
+            .map(|bounds| bounds.max)
+            .reduce(|a, b| glyph_brush::ab_glyph::Point {
+                x: a.x.max(b.x),
+                y: a.y.max(b.y),
+            })
+            .unwrap();
+
         let mesh_buffer = match glyph_brush.process_queued(
             |rect, tex_data| {
                 let [width, height] = [
@@ -119,39 +135,9 @@ impl Text {
                 ctx.queue.submit(std::iter::once(command_encoder.finish()));
             },
             |vertex_data| {
-                let color = [
-                    vertex_data.extra.color[0],
-                    vertex_data.extra.color[1],
-                    vertex_data.extra.color[2],
-                ];
-                let mut pixel_coords: [[f32; 2]; 4] = [
-                    [
-                        vertex_data.pixel_coords.min.x,
-                        vertex_data.pixel_coords.min.y,
-                    ],
-                    [
-                        vertex_data.pixel_coords.max.x,
-                        vertex_data.pixel_coords.min.y,
-                    ],
-                    [
-                        vertex_data.pixel_coords.max.x,
-                        vertex_data.pixel_coords.max.y,
-                    ],
-                    [
-                        vertex_data.pixel_coords.min.x,
-                        vertex_data.pixel_coords.max.y,
-                    ],
-                ];
-                for pixel_coord in &mut pixel_coords {
-                    // TODO fix this
-                    *pixel_coord = [pixel_coord[0] / 200.0, 1.0 - (pixel_coord[1] / 200.0)]
-                }
-                let uv_coords: [[f32; 2]; 4] = [
-                    [vertex_data.tex_coords.min.x, vertex_data.tex_coords.min.y],
-                    [vertex_data.tex_coords.max.x, vertex_data.tex_coords.min.y],
-                    [vertex_data.tex_coords.max.x, vertex_data.tex_coords.max.y],
-                    [vertex_data.tex_coords.min.x, vertex_data.tex_coords.max.y],
-                ];
+                let color = vertex_data.extra.color[0..3].try_into().unwrap();
+                let pixel_coords = glyph_rect_to_array(vertex_data.pixel_coords);
+                let uv_coords = glyph_rect_to_array(vertex_data.tex_coords);
                 [
                     Vertex {
                         position: pixel_coords[0],
@@ -194,50 +180,83 @@ impl Text {
                         })
                         .flatten()
                         .collect::<Vec<_>>();
-                    let vertices = vertices_list.into_iter().flatten().collect::<Vec<_>>();
+                    let vertices = vertices_list
+                        .into_iter()
+                        .flatten()
+                        .map(|mut v| {
+                            v.position = [
+                                (v.position[0]) / max_point.x * 2.0 - 1.0,
+                                (v.position[1] - 72.0 / 2.0) / max_point.x * -2.0,
+                            ];
+                            v
+                        })
+                        .collect::<Vec<_>>();
                     MeshBuffer::from_slices(&ctx.device, &vertices, &indices)
                 }
                 glyph_brush::BrushAction::ReDraw => todo!(),
             },
-            r => panic!("{:#?}", r),
+            Err(e) => panic!("{:#?}", e),
         };
-
-        let texture_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
-        let sampler = ctx.device.create_sampler(&wgpu::SamplerDescriptor {
-            address_mode_u: wgpu::AddressMode::ClampToEdge,
-            address_mode_v: wgpu::AddressMode::ClampToEdge,
-            address_mode_w: wgpu::AddressMode::ClampToEdge,
-            mag_filter: wgpu::FilterMode::Linear,
-            min_filter: wgpu::FilterMode::Nearest,
-            mipmap_filter: wgpu::FilterMode::Nearest,
-            ..Default::default()
-        });
-
-        let bind_group = ctx.device.create_bind_group(&wgpu::BindGroupDescriptor {
-            layout: &ctx.texture_bind_group_layout,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: wgpu::BindingResource::TextureView(&texture_view),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: wgpu::BindingResource::Sampler(&sampler),
-                },
-            ],
-            label: Some("Oblivion_ImageBindGroup"),
-        });
-
-        Text {
-            pipeline_data: PipelineData {
-                mesh_buffer: Rc::new(mesh_buffer),
-                bind_group: Rc::new(bind_group),
-                instance_buffer: Rc::clone(&ctx.identity_instance_buffer),
-            },
-        }
+        self.pipeline_data.mesh_buffer = Rc::new(mesh_buffer);
     }
 
     pub fn draw(&self, render: &mut Render, transform: Transform) {
         render.push_data(self.pipeline_data.clone(), 1, transform, 1);
     }
+}
+
+fn create_texture(
+    ctx: &mut GraphicsContext,
+    dimensions: [u32; 2],
+) -> (wgpu::Texture, wgpu::BindGroup) {
+    let texture = ctx.device.create_texture(&wgpu::TextureDescriptor {
+        label: Some("Oblivion_TextTexture"),
+        size: wgpu::Extent3d {
+            width: dimensions[0],
+            height: dimensions[1],
+            depth_or_array_layers: 1,
+        },
+        dimension: wgpu::TextureDimension::D2,
+        format: wgpu::TextureFormat::R8Unorm,
+        usage: wgpu::TextureUsages::COPY_DST | wgpu::TextureUsages::TEXTURE_BINDING,
+        mip_level_count: 1,
+        sample_count: 1,
+    });
+
+    let texture_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+    let sampler = ctx.device.create_sampler(&wgpu::SamplerDescriptor {
+        address_mode_u: wgpu::AddressMode::ClampToEdge,
+        address_mode_v: wgpu::AddressMode::ClampToEdge,
+        address_mode_w: wgpu::AddressMode::ClampToEdge,
+        mag_filter: wgpu::FilterMode::Linear,
+        min_filter: wgpu::FilterMode::Nearest,
+        mipmap_filter: wgpu::FilterMode::Nearest,
+        ..Default::default()
+    });
+
+    let bind_group = ctx.device.create_bind_group(&wgpu::BindGroupDescriptor {
+        layout: &ctx.texture_bind_group_layout,
+        entries: &[
+            wgpu::BindGroupEntry {
+                binding: 0,
+                resource: wgpu::BindingResource::TextureView(&texture_view),
+            },
+            wgpu::BindGroupEntry {
+                binding: 1,
+                resource: wgpu::BindingResource::Sampler(&sampler),
+            },
+        ],
+        label: Some("Oblivion_ImageBindGroup"),
+    });
+
+    (texture, bind_group)
+}
+
+fn glyph_rect_to_array(rect: glyph_brush::ab_glyph::Rect) -> [[f32; 2]; 4] {
+    [
+        [rect.min.x, rect.min.y],
+        [rect.max.x, rect.min.y],
+        [rect.max.x, rect.max.y],
+        [rect.min.x, rect.max.y],
+    ]
 }

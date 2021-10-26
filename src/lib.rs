@@ -147,11 +147,8 @@ impl Transform {
         glam::Mat4::from_scale_rotation_translation(
             glam::vec3(self.scale[0], self.scale[1], 1.0),
             glam::Quat::from_rotation_z(self.rotation),
-            glam::vec3(
-                self.position[0] * 2.0 - 1.0,
-                self.position[1] * 2.0 - 1.0,
-                0.0,
-            ),
+            // This is supposed to be p*2-1 for snorm but for reasons the -1 has to be in the shader.
+            glam::vec3(self.position[0] * 2.0, self.position[1] * 2.0, 0.0),
         )
     }
 }
