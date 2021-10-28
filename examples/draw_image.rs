@@ -13,7 +13,7 @@ impl common::Example for DrawImageExample {
         let image_data = image::load_from_memory(image_bytes).unwrap();
         let image_rgba = image_data.as_rgba8().unwrap();
         let dimensions = image_data.dimensions();
-        let image = Image::new(ctx, dimensions.0, dimensions.1, image_rgba);
+        let image = Image::new(ctx, [dimensions.0, dimensions.1], image_rgba);
         DrawImageExample { image }
     }
 
@@ -31,8 +31,8 @@ impl common::Example for DrawImageExample {
             self.image.draw(
                 render,
                 Transform {
-                    position: [0.5, 0.5],
-                    scale: [0.25, 0.25],
+                    position: [0.5, 0.5].into(),
+                    scale: [0.25, 0.25].into(),
                     ..Default::default()
                 },
             );

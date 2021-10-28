@@ -43,7 +43,7 @@ impl common::Example for DrawCanvasExample {
         self.text_hidden.draw(
             render,
             Transform {
-                position: [0.5, 0.5],
+                position: [0.5, 0.5].into(),
                 ..Default::default()
             },
         );
@@ -62,7 +62,7 @@ impl common::Example for DrawCanvasExample {
         self.text_shown.draw(
             render,
             Transform {
-                position: [0.5, 0.5],
+                position: [0.5, 0.5].into(),
                 ..Default::default()
             },
         );
@@ -70,24 +70,24 @@ impl common::Example for DrawCanvasExample {
         self.canvas_shown.draw(
             render,
             Transform {
-                position: [0.33, 0.5],
-                scale: [0.25, 0.25],
+                position: [0.33, 0.5].into(),
+                scale: [0.25, 0.25].into(),
                 ..Default::default()
             },
         );
         self.canvas_shown.draw(
             render,
             Transform {
-                position: [0.66, 0.5],
-                scale: [0.25, 0.25],
+                position: [0.66, 0.5].into(),
+                scale: [0.25, 0.25].into(),
                 ..Default::default()
             },
         );
         self.text_real.draw(
             render,
             Transform {
-                position: [0.75, 0.75],
-                scale: [0.25, 0.25],
+                position: [0.75, 0.75].into(),
+                scale: [0.25, 0.25].into(),
                 ..Default::default()
             },
         );

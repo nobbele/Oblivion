@@ -135,9 +135,11 @@ impl Text {
                 ctx.queue.submit(std::iter::once(command_encoder.finish()));
             },
             |vertex_data| {
-                let color = vertex_data.extra.color[0..3].try_into().unwrap();
-                let pixel_coords = glyph_rect_to_array(vertex_data.pixel_coords);
-                let uv_coords = glyph_rect_to_array(vertex_data.tex_coords);
+                let color = <[f32; 3]>::try_from(&vertex_data.extra.color[0..3])
+                    .unwrap()
+                    .into();
+                let pixel_coords = glyph_rect_to_point_list(vertex_data.pixel_coords);
+                let uv_coords = glyph_rect_to_point_list(vertex_data.tex_coords);
                 [
                     Vertex {
                         position: pixel_coords[0],
@@ -185,9 +187,10 @@ impl Text {
                         .flatten()
                         .map(|mut v| {
                             v.position = [
-                                (v.position[0]) / max_point.x * 2.0 - 1.0,
-                                (v.position[1] - 72.0 / 2.0) / max_point.x * -2.0,
-                            ];
+                                (v.position.x) / max_point.x * 2.0 - 1.0,
+                                (v.position.y - 72.0 / 2.0) / max_point.x * -2.0,
+                            ]
+                            .into();
                             v
                         })
                         .collect::<Vec<_>>();
@@ -252,11 +255,11 @@ fn create_texture(
     (texture, bind_group)
 }
 
-fn glyph_rect_to_array(rect: glyph_brush::ab_glyph::Rect) -> [[f32; 2]; 4] {
+fn glyph_rect_to_point_list(rect: glyph_brush::ab_glyph::Rect) -> [mint::Point2<f32>; 4] {
     [
-        [rect.min.x, rect.min.y],
-        [rect.max.x, rect.min.y],
-        [rect.max.x, rect.max.y],
-        [rect.min.x, rect.max.y],
+        [rect.min.x, rect.min.y].into(),
+        [rect.max.x, rect.min.y].into(),
+        [rect.max.x, rect.max.y].into(),
+        [rect.min.x, rect.max.y].into(),
     ]
 }

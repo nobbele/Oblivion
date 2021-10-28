@@ -23,7 +23,7 @@ impl common::Example for DrawImageExample {
         let image_data = image::load_from_memory(image_bytes).unwrap();
         let image_rgba = image_data.as_rgba8().unwrap();
         let dimensions = image_data.dimensions();
-        let image = Image::new(ctx, dimensions.0, dimensions.1, image_rgba);
+        let image = Image::new(ctx, [dimensions.0, dimensions.1], image_rgba);
         DrawImageExample {
             image,
             bunnies: Vec::new(),
@@ -89,8 +89,8 @@ impl common::Example for DrawImageExample {
             self.image.draw(
                 render,
                 Transform {
-                    position: bunny.position,
-                    scale: [1.0 / 12.0, 1.0 / 12.0],
+                    position: bunny.position.into(),
+                    scale: [1.0 / 12.0, 1.0 / 12.0].into(),
                     ..Default::default()
                 },
             );

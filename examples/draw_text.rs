@@ -26,7 +26,7 @@ impl common::Example for DrawTextExample {
         self.text.draw(
             render,
             Transform {
-                position: [0.5, 0.5],
+                position: [0.5, 0.5].into(),
                 ..Default::default()
             },
         );

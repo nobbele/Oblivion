@@ -40,18 +40,18 @@ impl GraphicsContext {
     // TODO Result
     pub fn new(
         window: &impl raw_window_handle::HasRawWindowHandle,
-        width: u32,
-        height: u32,
+        dimensions: impl Into<mint::Vector2<u32>>,
         vsync: bool,
     ) -> Self {
+        let dimensions = dimensions.into();
         let (adapter, surface) = get_adapter_surface(window);
         let (device, queue) = get_device_queue(&adapter);
 
         let config = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
             format: surface.get_preferred_format(&adapter).unwrap(),
-            width,
-            height,
+            width: dimensions.x,
+            height: dimensions.y,
             present_mode: if vsync {
                 wgpu::PresentMode::Fifo
             } else {
@@ -170,7 +170,7 @@ impl GraphicsContext {
     ) {
         let uniform_alignment = self.uniform_alignment as wgpu::BufferAddress;
         let view = match group.target_id {
-            TargetId::Screen => &output_view,
+            TargetId::Screen => output_view,
             TargetId::CanvasId(canvas_id) => &self.canvas_store[canvas_id],
         };
 
@@ -216,7 +216,7 @@ impl GraphicsContext {
                 },
             ) in group.queue.iter().enumerate()
             {
-                println!("Drawing pipeline {}", *pipeline_id);
+                //println!("Drawing pipeline {}", *pipeline_id);
                 render_pass.set_pipeline(&self.pipeline_store[*pipeline_id]);
                 render_pass.set_bind_group(0, &pipeline_data.bind_group, &[]);
                 render_pass.set_bind_group(
@@ -242,7 +242,7 @@ impl GraphicsContext {
     // TODO Result
     // Maybe take render as &mut?
     pub fn submit_render(&mut self, render: Render) {
-        println!("Starting render!");
+        //println!("Starting render!");
         let uniform_alignment = self.uniform_alignment as wgpu::BufferAddress;
         let output = self.surface.get_current_texture().unwrap();
         let view = output
@@ -312,17 +312,17 @@ impl GraphicsContext {
 
         let mut uniform_start_idx = 0;
         for group in &render.render_groups {
-            println!(
+            /*println!(
                 "Group Target: {:?} ({} draws)",
                 group.target_id,
                 group.queue.len()
-            );
+            );*/
             self.render_group(&mut encoder, &view, group, uniform_start_idx);
             uniform_start_idx += group.queue.len();
         }
 
         self.queue.submit(std::iter::once(encoder.finish()));
         output.present();
-        println!("Render finished!");
+        //println!("Render finished!");
     }
 }

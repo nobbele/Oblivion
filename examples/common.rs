@@ -9,12 +9,14 @@ pub trait Example {
 
 pub fn run<E: Example + 'static>() {
     let event_loop = winit::event_loop::EventLoop::new();
-    let window = winit::window::Window::new(&event_loop).expect("Unable to create window");
+    let window = winit::window::WindowBuilder::new()
+        .with_title("Oblivion")
+        .build(&event_loop)
+        .expect("Unable to create window");
 
     let mut ctx = GraphicsContext::new(
         &window,
-        window.inner_size().width,
-        window.inner_size().height,
+        [window.inner_size().width, window.inner_size().height],
         true,
     );
 
@@ -47,7 +49,7 @@ pub fn run<E: Example + 'static>() {
         },
         Event::MainEventsCleared => {
             if prev.elapsed().as_secs_f32() >= 1.0 {
-                println!("FPS: {}", frame_count);
+                window.set_title(&format!("Oblivion (FPS: {})", frame_count));
                 prev = std::time::Instant::now();
                 frame_count = 0;
             }

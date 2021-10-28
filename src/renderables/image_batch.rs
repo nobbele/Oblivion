@@ -13,10 +13,15 @@ pub struct ImageBatch {
 
 impl ImageBatch {
     // TODO Result
-    pub fn new(ctx: &GraphicsContext, width: u32, height: u32, data: &[u8]) -> Self {
+    pub fn new(
+        ctx: &GraphicsContext,
+        dimensions: impl Into<mint::Vector2<u32>>,
+        data: &[u8],
+    ) -> Self {
+        let dimensions = dimensions.into();
         let size = wgpu::Extent3d {
-            width,
-            height,
+            width: dimensions.x,
+            height: dimensions.y,
             depth_or_array_layers: 1,
         };
         let texture = ctx.device.create_texture_with_data(

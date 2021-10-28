@@ -12,12 +12,15 @@ mod shader;
 
 /// Vertex data.
 #[repr(C)]
-#[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
+#[derive(Copy, Clone, Debug)]
 pub struct Vertex {
-    pub position: [f32; 2],
-    pub color: [f32; 3],
-    pub uv: [f32; 2],
+    pub position: mint::Point2<f32>,
+    pub color: rgb::RGB<f32>,
+    pub uv: mint::Point2<f32>,
 }
+
+unsafe impl bytemuck::Pod for Vertex {}
+unsafe impl bytemuck::Zeroable for Vertex {}
 
 impl Vertex {
     pub(crate) fn desc<'a>() -> wgpu::VertexBufferLayout<'a> {
@@ -46,21 +49,75 @@ impl Vertex {
     }
 }
 
+// TODO make this a separate crate
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Angle {
+    radians: f32,
+}
+
+impl Angle {
+    #[inline]
+    pub const fn from_radians(rad: f32) -> Self {
+        Angle { radians: rad }
+    }
+
+    #[inline]
+    pub fn from_degrees(deg: f32) -> Self {
+        Angle { radians: deg }
+    }
+
+    pub fn rad(self) -> f32 {
+        self.radians
+    }
+
+    pub fn deg(self) -> f32 {
+        self.radians.to_degrees()
+    }
+
+    #[inline]
+    pub fn sin(self) -> f32 {
+        self.radians.sin()
+    }
+
+    #[inline]
+    pub fn cos(self) -> f32 {
+        self.radians.cos()
+    }
+}
+
+impl std::ops::Mul<f32> for Angle {
+    type Output = Angle;
+
+    fn mul(mut self, rhs: f32) -> Self::Output {
+        self.radians *= rhs;
+        self
+    }
+}
+
+impl std::ops::Add<f32> for Angle {
+    type Output = Angle;
+
+    fn add(mut self, rhs: f32) -> Self::Output {
+        self.radians += rhs;
+        self
+    }
+}
+
 /// Used to manipulate how an object is rendered.
 #[derive(Debug, Clone, Copy)]
 pub struct Transform {
-    pub position: [f32; 2],
-    pub scale: [f32; 2],
-    pub rotation: f32,
+    pub position: mint::Point2<f32>,
+    pub scale: mint::Vector2<f32>,
+    pub rotation: Angle,
 }
 
 impl Transform {
     pub(crate) fn as_matrix(&self) -> glam::Mat4 {
         glam::Mat4::from_scale_rotation_translation(
-            glam::vec3(self.scale[0], self.scale[1], 1.0),
-            glam::Quat::from_rotation_z(self.rotation),
+            glam::vec3(self.scale.x, self.scale.y, 1.0),
+            glam::Quat::from_rotation_z(self.rotation.rad()),
             // This is supposed to be p*2-1 for snorm but for reasons the -1 has to be in the shader.
-            glam::vec3(self.position[0] * 2.0, self.position[1] * 2.0, 0.0),
+            glam::vec3(self.position.x * 2.0, self.position.y * 2.0, 0.0),
         )
     }
 }
@@ -68,9 +125,9 @@ impl Transform {
 impl Default for Transform {
     fn default() -> Self {
         Self {
-            position: [0.0, 0.0],
-            scale: [1.0, 1.0],
-            rotation: 0.0,
+            position: [0.0, 0.0].into(),
+            scale: [1.0, 1.0].into(),
+            rotation: Angle::from_radians(0.0),
         }
     }
 }

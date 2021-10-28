@@ -19,22 +19,30 @@ impl MeshBuilder {
     }
 
     #[must_use]
-    pub fn tri(mut self, position: [f32; 2], size: [f32; 2], color: [f32; 3]) -> Self {
+    pub fn tri(
+        mut self,
+        position: impl Into<mint::Point2<f32>>,
+        size: impl Into<mint::Vector2<f32>>,
+        color: impl Into<rgb::RGB<f32>>,
+    ) -> Self {
+        let position = position.into();
+        let size = size.into();
+        let color = color.into();
         self.vertex.extend([
             Vertex {
-                position: [position[0], position[1] + size[1] / 2.0],
+                position: [position.x, position.y + size.y / 2.0].into(),
                 color,
-                uv: [0.0, 0.0],
+                uv: [0.0, 0.0].into(),
             },
             Vertex {
-                position: [position[0] - size[0] / 2.0, position[1] - size[1] / 2.0],
+                position: [position.x - size.x / 2.0, position.y - size.y / 2.0].into(),
                 color,
-                uv: [0.0, 0.0],
+                uv: [0.0, 0.0].into(),
             },
             Vertex {
-                position: [position[0] + size[0] / 2.0, position[1] - size[1] / 2.0],
+                position: [position.x + size.x / 2.0, position.y - size.y / 2.0].into(),
                 color,
-                uv: [0.0, 0.0],
+                uv: [0.0, 0.0].into(),
             },
         ]);
         self.index
@@ -44,27 +52,35 @@ impl MeshBuilder {
     }
 
     #[must_use]
-    pub fn quad(mut self, position: [f32; 2], size: [f32; 2], color: [f32; 3]) -> Self {
+    pub fn quad(
+        mut self,
+        position: impl Into<mint::Point2<f32>>,
+        size: impl Into<mint::Vector2<f32>>,
+        color: impl Into<rgb::RGB<f32>>,
+    ) -> Self {
+        let position = position.into();
+        let size = size.into();
+        let color = color.into();
         self.vertex.extend([
             Vertex {
-                position: [position[0] - size[0] / 2.0, position[1] + size[1] / 2.0],
+                position: [position.x - size.x / 2.0, position.y + size.y / 2.0].into(),
                 color,
-                uv: [0.0, 0.0],
+                uv: [0.0, 0.0].into(),
             },
             Vertex {
-                position: [position[0] + size[0] / 2.0, position[1] + size[1] / 2.0],
+                position: [position.x + size.x / 2.0, position.y + size.y / 2.0].into(),
                 color,
-                uv: [0.0, 0.0],
+                uv: [0.0, 0.0].into(),
             },
             Vertex {
-                position: [position[0] - size[0] / 2.0, position[1] - size[1] / 2.0],
+                position: [position.x - size.x / 2.0, position.y - size.y / 2.0].into(),
                 color,
-                uv: [0.0, 0.0],
+                uv: [0.0, 0.0].into(),
             },
             Vertex {
-                position: [position[0] + size[0] / 2.0, position[1] - size[1] / 2.0],
+                position: [position.x + size.x / 2.0, position.y - size.y / 2.0].into(),
                 color,
-                uv: [0.0, 0.0],
+                uv: [0.0, 0.0].into(),
             },
         ]);
         self.index.extend([

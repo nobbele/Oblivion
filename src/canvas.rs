@@ -9,15 +9,15 @@ pub struct Canvas {
     pub(crate) canvas_id: usize,
     pub(crate) texture: wgpu::Texture,
     pub(crate) data: PipelineData,
-    pub dimensions: [u32; 2],
+    pub dimensions: mint::Vector2<u32>,
 }
 
 impl Canvas {
-    pub fn new(ctx: &mut GraphicsContext, dimensions: [u32; 2]) -> Self {
-        let [width, height] = dimensions;
+    pub fn new(ctx: &mut GraphicsContext, dimensions: impl Into<mint::Vector2<u32>>) -> Self {
+        let dimensions = dimensions.into();
         let size = wgpu::Extent3d {
-            width,
-            height,
+            width: dimensions.x,
+            height: dimensions.y,
             depth_or_array_layers: 1,
         };
         let texture = ctx.device.create_texture(&wgpu::TextureDescriptor {
@@ -74,12 +74,12 @@ impl Canvas {
 
     pub fn download_rgba(&self, ctx: &mut GraphicsContext) -> Vec<u8> {
         let align = wgpu::COPY_BYTES_PER_ROW_ALIGNMENT as wgpu::BufferAddress;
-        let padded_width_padding = (align - self.dimensions[0] as u64 % align) % align;
-        let padded_width = self.dimensions[0] as u64 + padded_width_padding;
+        let padded_width_padding = (align - self.dimensions.x as u64 % align) % align;
+        let padded_width = self.dimensions.x as u64 + padded_width_padding;
 
         let download_buffer = ctx.device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Oblivion_TextUploadBuffer"),
-            size: padded_width * self.dimensions[1] as u64 * 4,
+            size: padded_width * self.dimensions.y as u64 * 4,
             usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
             mapped_at_creation: false,
         });
@@ -100,12 +100,12 @@ impl Canvas {
                 layout: wgpu::ImageDataLayout {
                     offset: 0,
                     bytes_per_row: NonZeroU32::new(padded_width as u32),
-                    rows_per_image: NonZeroU32::new(self.dimensions[0] as u32),
+                    rows_per_image: NonZeroU32::new(self.dimensions.x as u32),
                 },
             },
             wgpu::Extent3d {
-                width: self.dimensions[0] as u32,
-                height: self.dimensions[1] as u32,
+                width: self.dimensions.x as u32,
+                height: self.dimensions.y as u32,
                 depth_or_array_layers: 1,
             },
         );
@@ -116,11 +116,10 @@ impl Canvas {
         pollster::block_on(fut).unwrap();
 
         let buffer_view = download_buffer.slice(..).get_mapped_range();
-        let mut v =
-            Vec::with_capacity(self.dimensions[0] as usize * self.dimensions[1] as usize * 4);
-        for y in 0..self.dimensions[1] as u64 {
+        let mut v = Vec::with_capacity(self.dimensions.x as usize * self.dimensions.y as usize * 4);
+        for y in 0..self.dimensions.y as u64 {
             let start = y as usize * padded_width as usize;
-            v.extend_from_slice(&buffer_view[start..start + self.dimensions[0] as usize * 4]);
+            v.extend_from_slice(&buffer_view[start..start + self.dimensions.x as usize * 4]);
         }
         v
     }
