@@ -1,10 +1,11 @@
 #![warn(clippy::clone_on_ref_ptr)]
 
 pub(crate) use crate::internal::*;
-pub use crate::{canvas::*, context::*, renderables::*, shader::*};
+pub use crate::{canvas::*, context::*, error::*, renderables::*, shader::*};
 
 mod canvas;
 mod context;
+mod error;
 pub(crate) mod helpers;
 mod internal;
 mod renderables;
@@ -14,8 +15,11 @@ mod shader;
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
 pub struct Vertex {
+    /// Position.
     pub position: mint::Point2<f32>,
+    /// Color.
     pub color: rgb::RGB<f32>,
+    /// Texture coordinate.
     pub uv: mint::Point2<f32>,
 }
 
@@ -50,35 +54,47 @@ impl Vertex {
 }
 
 // TODO make this a separate crate
+/// Angle, uses radians internally.
+///
+/// Example usage:
+/// ```rust
+/// Angle::from_radians(std::f32::consts::FRAC_PI_2)
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Angle {
     radians: f32,
 }
 
 impl Angle {
+    /// Create angle from radians. (1 turn = 2π)
     #[inline]
     pub const fn from_radians(rad: f32) -> Self {
         Angle { radians: rad }
     }
 
+    /// Create angle from degrees. (1 turn = 360°)
     #[inline]
     pub fn from_degrees(deg: f32) -> Self {
         Angle { radians: deg }
     }
 
+    /// Get the radian value of this angle. (1 turn = 2π)
     pub fn rad(self) -> f32 {
         self.radians
     }
 
+    /// Get the degree value of this angle. (1 turn = 360°)
     pub fn deg(self) -> f32 {
         self.radians.to_degrees()
     }
 
+    /// Sine function.
     #[inline]
     pub fn sin(self) -> f32 {
         self.radians.sin()
     }
 
+    /// Cosine function.
     #[inline]
     pub fn cos(self) -> f32 {
         self.radians.cos()
@@ -106,8 +122,11 @@ impl std::ops::Add<f32> for Angle {
 /// Used to manipulate how an object is rendered.
 #[derive(Debug, Clone, Copy)]
 pub struct Transform {
+    /// Position or translation.
     pub position: mint::Point2<f32>,
+    /// Scale.
     pub scale: mint::Vector2<f32>,
+    /// Rotation.
     pub rotation: Angle,
 }
 
@@ -150,6 +169,7 @@ impl Default for Render {
 }
 
 impl Render {
+    /// Creates a new render object.
     pub fn new() -> Self {
         Render::default()
     }

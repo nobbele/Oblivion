@@ -14,10 +14,12 @@ pub struct MeshBuilder {
 
 // TODO correct UV
 impl MeshBuilder {
+    /// Creates a new mesh builder object.
     pub fn new() -> Self {
         MeshBuilder::default()
     }
 
+    /// Adds a triangle to the builder.
     #[must_use]
     pub fn tri(
         mut self,
@@ -51,6 +53,7 @@ impl MeshBuilder {
         self
     }
 
+    /// Adds a quadrilateral to the builder.
     #[must_use]
     pub fn quad(
         mut self,
@@ -95,6 +98,7 @@ impl MeshBuilder {
         self
     }
 
+    /// Builds the mesh object.
     pub fn build(self, ctx: &GraphicsContext) -> Mesh {
         Mesh::new(ctx, &self.vertex, &self.index)
     }
@@ -106,7 +110,7 @@ pub struct Mesh {
 }
 
 impl Mesh {
-    // TODO Result
+    /// Creates a new mesh object.
     pub fn new(ctx: &GraphicsContext, vertex: &[Vertex], index: &[u16]) -> Self {
         let mesh_buffer = MeshBuffer::from_slices(&ctx.device, vertex, index);
 

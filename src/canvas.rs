@@ -1,8 +1,8 @@
 use std::{num::NonZeroU32, rc::Rc};
 
-use crate::{GraphicsContext, PipelineData, Render, Transform};
+use crate::{GraphicsContext, OblivionError, OblivionResult, PipelineData, Render, Transform};
 
-// TODO make this a wrapper to image maybe?
+// TODO make this a wrapper of image maybe?
 
 /// Canvases are used as rendering target to create a fake screen.
 pub struct Canvas {
@@ -13,6 +13,7 @@ pub struct Canvas {
 }
 
 impl Canvas {
+    /// Creates a new canvas.
     pub fn new(ctx: &mut GraphicsContext, dimensions: impl Into<mint::Vector2<u32>>) -> Self {
         let dimensions = dimensions.into();
         let size = wgpu::Extent3d {
@@ -25,7 +26,7 @@ impl Canvas {
             mip_level_count: 1,
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
-            format: ctx.surface.get_preferred_format(&ctx.adapter).unwrap(),
+            format: ctx.preferred_format,
             usage: wgpu::TextureUsages::TEXTURE_BINDING
                 | wgpu::TextureUsages::RENDER_ATTACHMENT
                 | wgpu::TextureUsages::COPY_SRC,
@@ -72,7 +73,8 @@ impl Canvas {
         }
     }
 
-    pub fn download_rgba(&self, ctx: &mut GraphicsContext) -> Vec<u8> {
+    /// Gets the raw RGBA data of this canvas's underlying texture.
+    pub fn download_rgba(&self, ctx: &mut GraphicsContext) -> OblivionResult<Vec<u8>> {
         let align = wgpu::COPY_BYTES_PER_ROW_ALIGNMENT as wgpu::BufferAddress;
         let padded_width_padding = (align - self.dimensions.x as u64 % align) % align;
         let padded_width = self.dimensions.x as u64 + padded_width_padding;
@@ -113,7 +115,7 @@ impl Canvas {
 
         let fut = download_buffer.slice(..).map_async(wgpu::MapMode::Read);
         ctx.device.poll(wgpu::Maintain::Wait);
-        pollster::block_on(fut).unwrap();
+        pollster::block_on(fut).map_err(OblivionError::MapBuffer)?;
 
         let buffer_view = download_buffer.slice(..).get_mapped_range();
         let mut v = Vec::with_capacity(self.dimensions.x as usize * self.dimensions.y as usize * 4);
@@ -121,9 +123,10 @@ impl Canvas {
             let start = y as usize * padded_width as usize;
             v.extend_from_slice(&buffer_view[start..start + self.dimensions.x as usize * 4]);
         }
-        v
+        Ok(v)
     }
 
+    /// Pushes this canvas to the draw queue.
     pub fn draw(&self, render: &mut Render, transform: Transform) {
         render.push_data(self.data.clone(), 1, transform, 0);
     }

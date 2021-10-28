@@ -12,7 +12,7 @@ pub struct ImageBatch {
 }
 
 impl ImageBatch {
-    // TODO Result
+    /// Creates a new image batch object.
     pub fn new(
         ctx: &GraphicsContext,
         dimensions: impl Into<mint::Vector2<u32>>,
@@ -83,6 +83,7 @@ impl ImageBatch {
         }
     }
 
+    /// Adds batch instances to the image batch.
     pub fn add_instance(&mut self, ctx: &mut GraphicsContext, transforms: &[Transform]) {
         let new_count = self.instance_buffer_count + transforms.len() as u64;
         if new_count > self.instance_buffer_capacity {
@@ -136,6 +137,7 @@ impl ImageBatch {
         self.instance_buffer_count = new_count;
     }
 
+    /// Pushes this image batch to the draw queue.
     pub fn draw(&self, render: &mut Render, transform: Transform) {
         render.push_data(
             self.data.clone(),

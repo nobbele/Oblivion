@@ -2,7 +2,10 @@ use std::{num::NonZeroU32, rc::Rc};
 
 use glyph_brush::{ab_glyph::FontArc, GlyphBrushBuilder, GlyphCruncher, Section};
 
-use crate::{GraphicsContext, MeshBuffer, PipelineData, Render, Transform, Vertex};
+use crate::{
+    GraphicsContext, MeshBuffer, OblivionError, OblivionResult, PipelineData, Render, Transform,
+    Vertex,
+};
 
 /// Renderable text object.
 pub struct Text {
@@ -10,6 +13,7 @@ pub struct Text {
 }
 
 impl Text {
+    /// Creates a new text object.
     pub fn new(ctx: &mut GraphicsContext) -> Self {
         let (_texture, bind_group) = create_texture(ctx, [1, 1]);
         let mesh_buffer = MeshBuffer::from_slices(&ctx.device, &[], &[]);
@@ -23,7 +27,8 @@ impl Text {
     }
 
     // Make a add_text + flush method instead?
-    pub fn add_text(&mut self, ctx: &mut GraphicsContext, texts: &[&str]) {
+    /// Adds texts to the text object.
+    pub fn add_text(&mut self, ctx: &mut GraphicsContext, texts: &[&str]) -> OblivionResult<()> {
         let mut upload_buffer_size =
             wgpu::COPY_BYTES_PER_ROW_ALIGNMENT as wgpu::BufferAddress * 100;
         let mut upload_buffer = ctx.device.create_buffer(&wgpu::BufferDescriptor {
@@ -34,7 +39,7 @@ impl Text {
         });
 
         let font = FontArc::try_from_slice(include_bytes!("../../resources/fonts/DejaVuSans.ttf"))
-            .unwrap();
+            .map_err(OblivionError::LoadFont)?;
         let mut glyph_brush = GlyphBrushBuilder::using_font(font).build();
         let sections = texts
             .iter()
@@ -57,7 +62,7 @@ impl Text {
                 x: a.x.max(b.x),
                 y: a.y.max(b.y),
             })
-            .unwrap();
+            .unwrap_or_default();
 
         let mesh_buffer = match glyph_brush.process_queued(
             |rect, tex_data| {
@@ -88,7 +93,9 @@ impl Text {
 
                 let fut = upload_buffer.slice(..).map_async(wgpu::MapMode::Write);
                 ctx.device.poll(wgpu::Maintain::Wait);
-                pollster::block_on(fut).unwrap();
+                pollster::block_on(fut)
+                    .map_err(OblivionError::MapBuffer)
+                    .unwrap();
 
                 for row in 0..height {
                     upload_buffer
@@ -201,8 +208,10 @@ impl Text {
             Err(e) => panic!("{:#?}", e),
         };
         self.pipeline_data.mesh_buffer = Rc::new(mesh_buffer);
+        Ok(())
     }
 
+    /// Pushes this text object to the draw queue.
     pub fn draw(&self, render: &mut Render, transform: Transform) {
         render.push_data(self.pipeline_data.clone(), 1, transform, 1);
     }

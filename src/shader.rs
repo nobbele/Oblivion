@@ -6,6 +6,7 @@ pub struct Shader {
 }
 
 impl Shader {
+    /// Creates a new shader.
     pub fn new(ctx: &mut GraphicsContext, source: wgpu::ShaderSource) -> Self {
         ctx.pipeline_store.push(create_pipeline(
             &ctx.device,

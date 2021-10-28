@@ -18,7 +18,8 @@ pub fn run<E: Example + 'static>() {
         &window,
         [window.inner_size().width, window.inner_size().height],
         true,
-    );
+    )
+    .unwrap();
 
     let mut ex = E::setup(&mut ctx);
 
@@ -56,7 +57,7 @@ pub fn run<E: Example + 'static>() {
             ex.update(&mut ctx);
             let mut render = Render::new();
             ex.draw(&mut render);
-            ctx.submit_render(render);
+            ctx.submit_render(render).unwrap();
             frame_count += 1;
         }
         Event::LoopDestroyed => { /* on quit */ }

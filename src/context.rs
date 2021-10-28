@@ -4,8 +4,8 @@ use wgpu::util::DeviceExt;
 
 use crate::{
     helpers::{create_pipeline, get_adapter_surface, get_device_queue},
-    DrawData, MeshBuffer, Render, RenderData, RenderGroup, TargetId, Transform, QUAD_INDICES,
-    QUAD_VERTICES,
+    DrawData, MeshBuffer, OblivionError, OblivionResult, Render, RenderData, RenderGroup, TargetId,
+    Transform, QUAD_INDICES, QUAD_VERTICES,
 };
 
 type UniformType = [[f32; 4]; 4];
@@ -13,10 +13,10 @@ const UNIFORM_SIZE: usize = std::mem::size_of::<UniformType>();
 
 /// Context for graphics. This stores the graphics device, render queue, window surface, and more.
 pub struct GraphicsContext {
-    pub(crate) adapter: wgpu::Adapter,
     pub(crate) device: wgpu::Device,
     pub(crate) queue: wgpu::Queue,
     pub(crate) surface: wgpu::Surface,
+    pub(crate) preferred_format: wgpu::TextureFormat,
     #[allow(dead_code)]
     pub(crate) config: wgpu::SurfaceConfiguration,
 
@@ -37,19 +37,24 @@ pub struct GraphicsContext {
 }
 
 impl GraphicsContext {
-    // TODO Result
+    /// Creates a new graphics context.
+    /// The window parameter can be a winit window or similar.
     pub fn new(
         window: &impl raw_window_handle::HasRawWindowHandle,
         dimensions: impl Into<mint::Vector2<u32>>,
         vsync: bool,
-    ) -> Self {
+    ) -> OblivionResult<Self> {
         let dimensions = dimensions.into();
-        let (adapter, surface) = get_adapter_surface(window);
-        let (device, queue) = get_device_queue(&adapter);
+        let (adapter, surface) = get_adapter_surface(window)?;
+        let (device, queue) = get_device_queue(&adapter)?;
+
+        let preferred_format = surface
+            .get_preferred_format(&adapter)
+            .ok_or(OblivionError::InvalidSurface)?;
 
         let config = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
-            format: surface.get_preferred_format(&adapter).unwrap(),
+            format: preferred_format,
             width: dimensions.x,
             height: dimensions.y,
             present_mode: if vsync {
@@ -139,8 +144,7 @@ impl GraphicsContext {
             },
         ));
 
-        GraphicsContext {
-            adapter,
+        Ok(GraphicsContext {
             surface,
             device,
             queue,
@@ -158,7 +162,8 @@ impl GraphicsContext {
             uniform_buffer_count: 0,
             uniform_bind_groups: Vec::new(),
             uniform_alignment,
-        }
+            preferred_format,
+        })
     }
 
     fn render_group(
@@ -239,12 +244,15 @@ impl GraphicsContext {
         }
     }
 
-    // TODO Result
     // Maybe take render as &mut?
-    pub fn submit_render(&mut self, render: Render) {
+    /// Submits the render object to Oblivion's rendering system.
+    pub fn submit_render(&mut self, render: Render) -> OblivionResult<()> {
         //println!("Starting render!");
         let uniform_alignment = self.uniform_alignment as wgpu::BufferAddress;
-        let output = self.surface.get_current_texture().unwrap();
+        let output = self
+            .surface
+            .get_current_texture()
+            .map_err(OblivionError::RetrieveFrameError)?;
         let view = output
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
@@ -271,7 +279,10 @@ impl GraphicsContext {
                             resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
                                 buffer: &self.uniform_buffer,
                                 offset: idx * uniform_alignment,
-                                size: Some(NonZeroU64::new(uniform_alignment).unwrap()),
+                                size: Some(
+                                    NonZeroU64::new(uniform_alignment)
+                                        .expect("This is definitely not zero"),
+                                ),
                             }),
                         }],
                         label: Some("Oblivion_MVPBindGroup"),
@@ -324,5 +335,6 @@ impl GraphicsContext {
         self.queue.submit(std::iter::once(encoder.finish()));
         output.present();
         //println!("Render finished!");
+        Ok(())
     }
 }

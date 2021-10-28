@@ -4,12 +4,12 @@ use wgpu::{
     Surface,
 };
 
-use crate::{instance_desc, Vertex};
+use crate::{instance_desc, OblivionError, OblivionResult, Vertex};
 
 // TODO Result
 pub fn get_adapter_surface(
     window: &impl raw_window_handle::HasRawWindowHandle,
-) -> (Adapter, Surface) {
+) -> OblivionResult<(Adapter, Surface)> {
     let instance = wgpu::Instance::new(Backends::PRIMARY);
     let surface = unsafe { instance.create_surface(window) };
     let adapter = block_on(instance.request_adapter(&RequestAdapterOptions {
@@ -17,16 +17,16 @@ pub fn get_adapter_surface(
         force_fallback_adapter: false,
         compatible_surface: Some(&surface),
     }))
-    .expect("Unable to find adapter");
+    .ok_or(OblivionError::RequestAdapter)?;
 
     println!("Using '{}'", adapter.get_info().name);
 
-    (adapter, surface)
+    Ok((adapter, surface))
 }
 
 // TODO Result
-pub fn get_device_queue(adapter: &Adapter) -> (Device, Queue) {
-    block_on(adapter.request_device(
+pub fn get_device_queue(adapter: &Adapter) -> OblivionResult<(Device, Queue)> {
+    let (device, queue) = block_on(adapter.request_device(
         &DeviceDescriptor {
             label: Some("Oblivion_Device"),
             features: Features::default(),
@@ -34,7 +34,8 @@ pub fn get_device_queue(adapter: &Adapter) -> (Device, Queue) {
         },
         None,
     ))
-    .expect("Unable to create device")
+    .map_err(OblivionError::CreateDevice)?;
+    Ok((device, queue))
 }
 
 pub fn create_pipeline(

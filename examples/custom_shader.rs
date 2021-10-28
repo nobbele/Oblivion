@@ -3,8 +3,6 @@ use oblivion::{GraphicsContext, Image, Render, Shader, Transform};
 #[path = "common.rs"]
 mod common;
 
-// TODO
-
 struct DrawImageExample {
     shader: Shader,
     image: Image,

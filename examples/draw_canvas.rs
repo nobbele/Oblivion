@@ -15,11 +15,11 @@ impl common::Example for DrawCanvasExample {
         let canvas_hidden = Canvas::new(ctx, [64, 64]);
         let canvas_shown = Canvas::new(ctx, [64, 64]);
         let mut text_hidden = Text::new(ctx);
-        text_hidden.add_text(ctx, &["Hidden"]);
+        text_hidden.add_text(ctx, &["Hidden"]).unwrap();
         let mut text_shown = Text::new(ctx);
-        text_shown.add_text(ctx, &["Shown"]);
+        text_shown.add_text(ctx, &["Shown"]).unwrap();
         let mut text_real = Text::new(ctx);
-        text_real.add_text(ctx, &["Real"]);
+        text_real.add_text(ctx, &["Real"]).unwrap();
         DrawCanvasExample {
             canvas_hidden,
             canvas_shown,

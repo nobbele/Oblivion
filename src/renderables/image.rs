@@ -5,12 +5,23 @@ use wgpu::util::DeviceExt;
 use crate::{GraphicsContext, PipelineData, Render, Transform};
 
 /// Essentially just a textured rectangle.
+///
+/// Example usage:
+/// ```rust
+/// let image_bytes = include_bytes!("../resources/textures/happy-tree.png");
+/// let image_data = image::load_from_memory(image_bytes).unwrap();
+/// let image_rgba = image_data.as_rgba8().unwrap();
+/// let dimensions = image_data.dimensions();
+/// let image = Image::new(ctx, [dimensions.0, dimensions.1], image_rgba);
+/// /* ... */
+/// image.draw(&mut render, Transform::default());
+/// ```
 pub struct Image {
     data: PipelineData,
 }
 
 impl Image {
-    // TODO Result
+    /// Creates a new image object.
     pub fn new(
         ctx: &GraphicsContext,
         dimensions: impl Into<mint::Vector2<u32>>,
@@ -71,6 +82,7 @@ impl Image {
         }
     }
 
+    /// Pushes this image to the draw queue.
     pub fn draw(&self, render: &mut Render, transform: Transform) {
         render.push_data(self.data.clone(), 1, transform, 0);
     }

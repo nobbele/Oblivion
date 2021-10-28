@@ -9,7 +9,7 @@ struct DrawTextExample {
 impl common::Example for DrawTextExample {
     fn setup(ctx: &mut GraphicsContext) -> Self {
         let mut text = Text::new(ctx);
-        text.add_text(ctx, &["Hello World"]);
+        text.add_text(ctx, &["Hello World"]).unwrap();
         DrawTextExample { text }
     }
 
