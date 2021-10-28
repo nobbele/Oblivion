@@ -1,74 +1,14 @@
 #![warn(clippy::clone_on_ref_ptr)]
-use std::rc::Rc;
 
-pub use crate::{context::*, renderables::*, shader::*};
-use wgpu::{util::DeviceExt, Color};
+pub(crate) use crate::internal::*;
+pub use crate::{canvas::*, context::*, renderables::*, shader::*};
 
+mod canvas;
 mod context;
 pub(crate) mod helpers;
+mod internal;
 mod renderables;
 mod shader;
-
-pub(crate) type InstanceType = [[f32; 4]; 4];
-pub(crate) const INSTANCE_SIZE: usize = std::mem::size_of::<InstanceType>();
-
-fn instance_desc<'a>() -> wgpu::VertexBufferLayout<'a> {
-    wgpu::VertexBufferLayout {
-        array_stride: INSTANCE_SIZE as u64,
-        step_mode: wgpu::VertexStepMode::Instance,
-        attributes: &[
-            wgpu::VertexAttribute {
-                offset: 0,
-                shader_location: 5,
-                format: wgpu::VertexFormat::Float32x4,
-            },
-            wgpu::VertexAttribute {
-                offset: std::mem::size_of::<[f32; 4]>() as wgpu::BufferAddress,
-                shader_location: 6,
-                format: wgpu::VertexFormat::Float32x4,
-            },
-            wgpu::VertexAttribute {
-                offset: std::mem::size_of::<[f32; 8]>() as wgpu::BufferAddress,
-                shader_location: 7,
-                format: wgpu::VertexFormat::Float32x4,
-            },
-            wgpu::VertexAttribute {
-                offset: std::mem::size_of::<[f32; 12]>() as wgpu::BufferAddress,
-                shader_location: 8,
-                format: wgpu::VertexFormat::Float32x4,
-            },
-        ],
-    }
-}
-
-pub(crate) const QUAD_VERTICES: &[Vertex] = &[
-    // Top Left
-    Vertex {
-        position: [-1.0, 1.0],
-        uv: [0.0, 0.0],
-        color: [1.0, 1.0, 1.0],
-    },
-    // Top Right
-    Vertex {
-        position: [1.0, 1.0],
-        uv: [1.0, 0.0],
-        color: [1.0, 1.0, 1.0],
-    },
-    // Bottom Left
-    Vertex {
-        position: [-1.0, -1.0],
-        uv: [0.0, 1.0],
-        color: [1.0, 1.0, 1.0],
-    },
-    // Bottom Right
-    Vertex {
-        position: [1.0, -1.0],
-        uv: [1.0, 1.0],
-        color: [1.0, 1.0, 1.0],
-    },
-];
-
-pub(crate) const QUAD_INDICES: &[u16] = &[0, 1, 2, 1, 3, 2];
 
 /// Vertex data.
 #[repr(C)]
@@ -80,7 +20,7 @@ pub struct Vertex {
 }
 
 impl Vertex {
-    fn desc<'a>() -> wgpu::VertexBufferLayout<'a> {
+    pub(crate) fn desc<'a>() -> wgpu::VertexBufferLayout<'a> {
         wgpu::VertexBufferLayout {
             array_stride: std::mem::size_of::<Vertex>() as wgpu::BufferAddress,
             step_mode: wgpu::VertexStepMode::Vertex,
@@ -103,34 +43,6 @@ impl Vertex {
                 },
             ],
         }
-    }
-}
-
-pub(crate) struct MeshBuffer {
-    pub vertex: (wgpu::Buffer, u32),
-    pub index: (wgpu::Buffer, u32),
-}
-
-impl MeshBuffer {
-    pub fn from_slices(device: &wgpu::Device, vertex: &[Vertex], index: &[u16]) -> MeshBuffer {
-        let vertex = (
-            device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: Some("Oblivion_QuadVertexBuffer"),
-                contents: bytemuck::cast_slice(vertex),
-                usage: wgpu::BufferUsages::VERTEX,
-            }),
-            vertex.len() as u32,
-        );
-
-        let index = (
-            device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: Some("Oblivion_QuadIndexBuffer"),
-                contents: bytemuck::cast_slice(index),
-                usage: wgpu::BufferUsages::INDEX,
-            }),
-            index.len() as u32,
-        );
-        MeshBuffer { vertex, index }
     }
 }
 
@@ -162,36 +74,31 @@ impl Default for Transform {
         }
     }
 }
-/// This is shared between all .draw() calls of the same renderable instance.
-#[derive(Clone)]
-pub(crate) struct PipelineData {
-    pub mesh_buffer: Rc<MeshBuffer>,
-    pub bind_group: Rc<wgpu::BindGroup>,
-    pub instance_buffer: Rc<wgpu::Buffer>,
-}
 
-/// This is unique between .draw() calls
-pub(crate) struct DrawData {
-    pub pipeline_id: usize,
-    pub transform: Transform,
-}
-
-pub(crate) struct RenderData {
-    pipeline_data: PipelineData,
-    instance_count: u32,
-    instance_data: DrawData,
-}
-
-#[derive(Default)]
+/// Stores a record and information about draw calls that can then be submitted to the context.
 pub struct Render {
-    clear_color: Option<Color>,
-    shader_queue: Vec<usize>,
-    queue: Vec<RenderData>,
+    shader_stack: Vec<usize>,
+    render_groups: Vec<RenderGroup>,
+    render_stack: Vec<usize>,
+}
+
+impl Default for Render {
+    fn default() -> Self {
+        Self {
+            shader_stack: Default::default(),
+            render_groups: vec![RenderGroup::default()],
+            render_stack: Default::default(),
+        }
+    }
 }
 
 impl Render {
     pub fn new() -> Self {
         Render::default()
+    }
+
+    pub(crate) fn current_render_group(&mut self) -> &mut RenderGroup {
+        &mut self.render_groups[self.render_stack.last().copied().unwrap_or(0)]
     }
 
     pub(crate) fn push_data(
@@ -201,15 +108,16 @@ impl Render {
         transform: Transform,
         default_pipeline_id: usize,
     ) {
-        self.queue.push(RenderData {
+        let pipeline_id = self
+            .shader_stack
+            .last()
+            .copied()
+            .unwrap_or(default_pipeline_id);
+        self.current_render_group().queue.push(RenderData {
             pipeline_data,
             instance_count,
             instance_data: DrawData {
-                pipeline_id: self
-                    .shader_queue
-                    .last()
-                    .copied()
-                    .unwrap_or(default_pipeline_id),
+                pipeline_id,
                 transform,
             },
         })
@@ -218,18 +126,32 @@ impl Render {
 
 /// Clears the screen with a color.
 pub fn clear(render: &mut Render, color: wgpu::Color) {
-    render.clear_color = Some(color);
+    render.current_render_group().clear_color = Some(color);
     // We also need to clear the draw queue to give the illusion of the clear color overwriting everything else
     // This should produce the same behavior as just overwriting everything else though.
-    render.queue.clear();
+    render.current_render_group().queue.clear();
 }
 
-/// Sets an active shader. Use `oblivion::pop` to unset it.
+/// Sets an active shader. Use `oblivion::pop_shader` to unset it.
 pub fn push_shader(render: &mut Render, shader: &Shader) {
-    render.shader_queue.push(shader.pipeline_id);
+    render.shader_stack.push(shader.pipeline_id);
 }
 
 /// Removes the active shader and goes back to the previous one.
 pub fn pop_shader(render: &mut Render) {
-    render.shader_queue.pop();
+    render.shader_stack.pop();
+}
+
+/// Sets an active canvas. Use `oblivion::pop_canvas` to unset it.
+pub fn push_canvas(render: &mut Render, canvas: &Canvas) {
+    render.render_groups.push(RenderGroup {
+        target_id: TargetId::CanvasId(canvas.canvas_id),
+        ..Default::default()
+    });
+    render.render_stack.push(render.render_groups.len() - 1);
+}
+
+/// Removes the active canvas and goes back to the previous one.
+pub fn pop_canvas(render: &mut Render) {
+    render.render_stack.pop();
 }

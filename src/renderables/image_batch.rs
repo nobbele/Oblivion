@@ -4,7 +4,7 @@ use wgpu::util::DeviceExt;
 
 use crate::{GraphicsContext, PipelineData, Render, Transform, INSTANCE_SIZE};
 
-/// Renderable image batch. This will draw a single texture with many `Transform`s
+/// Draws a single texture using many `Transform`s
 pub struct ImageBatch {
     data: PipelineData,
     instance_buffer_capacity: u64,

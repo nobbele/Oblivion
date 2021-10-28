@@ -4,7 +4,7 @@ use wgpu::util::DeviceExt;
 
 use crate::{GraphicsContext, MeshBuffer, PipelineData, Render, Transform, Vertex};
 
-/// Builder for the `Mesh` object.
+/// Provides a way to build `Mesh` with convient functions such as triangle and rectangle generators.
 #[derive(Default)]
 pub struct MeshBuilder {
     vertex: Vec<Vertex>,

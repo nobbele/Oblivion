@@ -12,6 +12,7 @@ raw-window-handle = "0.3.3"
 bytemuck = { version = "1.7.2", features = [ "derive" ] }
 glam = "0.19.0"
 glyph_brush = "0.7.2"
+rgb = "0.8.27"
 
 [dev-dependencies]
 winit = "0.25.0"

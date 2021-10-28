@@ -3,7 +3,7 @@ use winit::event::{Event, VirtualKeyCode, WindowEvent};
 
 pub trait Example {
     fn setup(ctx: &mut GraphicsContext) -> Self;
-    fn update(&mut self) {}
+    fn update(&mut self, _ctx: &mut GraphicsContext) {}
     fn draw(&self, render: &mut Render);
 }
 
@@ -51,7 +51,7 @@ pub fn run<E: Example + 'static>() {
                 prev = std::time::Instant::now();
                 frame_count = 0;
             }
-            ex.update();
+            ex.update(&mut ctx);
             let mut render = Render::new();
             ex.draw(&mut render);
             ctx.submit_render(render);

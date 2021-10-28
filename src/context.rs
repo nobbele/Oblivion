@@ -4,7 +4,8 @@ use wgpu::util::DeviceExt;
 
 use crate::{
     helpers::{create_pipeline, get_adapter_surface, get_device_queue},
-    DrawData, MeshBuffer, Render, RenderData, Transform, QUAD_INDICES, QUAD_VERTICES,
+    DrawData, MeshBuffer, Render, RenderData, RenderGroup, TargetId, Transform, QUAD_INDICES,
+    QUAD_VERTICES,
 };
 
 type UniformType = [[f32; 4]; 4];
@@ -12,12 +13,14 @@ const UNIFORM_SIZE: usize = std::mem::size_of::<UniformType>();
 
 /// Context for graphics. This stores the graphics device, render queue, window surface, and more.
 pub struct GraphicsContext {
+    pub(crate) adapter: wgpu::Adapter,
     pub(crate) device: wgpu::Device,
     pub(crate) queue: wgpu::Queue,
-    surface: wgpu::Surface,
+    pub(crate) surface: wgpu::Surface,
     #[allow(dead_code)]
     pub(crate) config: wgpu::SurfaceConfiguration,
 
+    pub(crate) canvas_store: Vec<wgpu::TextureView>,
     pub(crate) pipeline_store: Vec<wgpu::RenderPipeline>,
     pub(crate) texture_bind_group_layout: wgpu::BindGroupLayout,
     pub(crate) mvp_bind_group_layout: wgpu::BindGroupLayout,
@@ -137,10 +140,12 @@ impl GraphicsContext {
         ));
 
         GraphicsContext {
+            adapter,
             surface,
             device,
             queue,
             config,
+            canvas_store: Vec::new(),
             pipeline_store,
             quad_mesh_buffer: Rc::new(quad_mesh_buffer),
             texture_bind_group_layout,
@@ -156,17 +161,101 @@ impl GraphicsContext {
         }
     }
 
+    fn render_group(
+        &mut self,
+        encoder: &mut wgpu::CommandEncoder,
+        output_view: &wgpu::TextureView,
+        group: &RenderGroup,
+        uniform_start_idx: usize,
+    ) {
+        let uniform_alignment = self.uniform_alignment as wgpu::BufferAddress;
+        let view = match group.target_id {
+            TargetId::Screen => &output_view,
+            TargetId::CanvasId(canvas_id) => &self.canvas_store[canvas_id],
+        };
+
+        let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            label: Some("Oblivion_RenderPass"),
+            color_attachments: &[wgpu::RenderPassColorAttachment {
+                view,
+                resolve_target: None,
+                ops: wgpu::Operations {
+                    load: match group.clear_color {
+                        Some(color) => wgpu::LoadOp::Clear(color),
+                        None => wgpu::LoadOp::Load,
+                    },
+                    store: true,
+                },
+            }],
+            depth_stencil_attachment: None,
+        });
+
+        if !group.queue.is_empty() {
+            for (
+                idx,
+                RenderData {
+                    instance_data: DrawData { transform, .. },
+                    ..
+                },
+            ) in group.queue.iter().enumerate()
+            {
+                let start = (idx + uniform_start_idx) * uniform_alignment as usize;
+                self.uniform_buffer_data[start..start + UNIFORM_SIZE].copy_from_slice(
+                    bytemuck::cast_slice(&transform.as_matrix().to_cols_array_2d()),
+                )
+            }
+            self.queue
+                .write_buffer(&self.uniform_buffer, 0, &self.uniform_buffer_data);
+
+            for (
+                idx,
+                RenderData {
+                    pipeline_data,
+                    instance_count,
+                    instance_data: DrawData { pipeline_id, .. },
+                },
+            ) in group.queue.iter().enumerate()
+            {
+                println!("Drawing pipeline {}", *pipeline_id);
+                render_pass.set_pipeline(&self.pipeline_store[*pipeline_id]);
+                render_pass.set_bind_group(0, &pipeline_data.bind_group, &[]);
+                render_pass.set_bind_group(
+                    1,
+                    &self.uniform_bind_groups[uniform_start_idx + idx],
+                    &[],
+                );
+                render_pass.set_vertex_buffer(0, pipeline_data.mesh_buffer.vertex.0.slice(..));
+                render_pass.set_vertex_buffer(1, pipeline_data.instance_buffer.slice(..));
+                render_pass.set_index_buffer(
+                    pipeline_data.mesh_buffer.index.0.slice(..),
+                    wgpu::IndexFormat::Uint16,
+                );
+                render_pass.draw_indexed(
+                    0..pipeline_data.mesh_buffer.index.1,
+                    0,
+                    0..*instance_count,
+                );
+            }
+        }
+    }
+
     // TODO Result
     // Maybe take render as &mut?
     pub fn submit_render(&mut self, render: Render) {
+        println!("Starting render!");
         let uniform_alignment = self.uniform_alignment as wgpu::BufferAddress;
         let output = self.surface.get_current_texture().unwrap();
         let view = output
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
 
-        if render.queue.len() as u64 > self.uniform_buffer_count {
-            let new_uniform_buffer_count = render.queue.len() as u64 * 2;
+        let total_queue_len: u64 = render
+            .render_groups
+            .iter()
+            .map(|group| group.queue.len() as u64)
+            .sum();
+        if total_queue_len > self.uniform_buffer_count {
+            let new_uniform_buffer_count = total_queue_len * 2;
             self.uniform_buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
                 label: Some("Oblivion_UniformBuffer"),
                 size: new_uniform_buffer_count * uniform_alignment,
@@ -205,68 +294,35 @@ impl GraphicsContext {
                 label: Some("Oblivion_CommandEncoder"),
             });
 
-        {
-            let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+        // Surface frame times out if there's no render pass used.
+        if render.render_groups.is_empty() {
+            let mut _render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("Oblivion_RenderPass"),
                 color_attachments: &[wgpu::RenderPassColorAttachment {
                     view: &view,
                     resolve_target: None,
                     ops: wgpu::Operations {
-                        load: match render.clear_color {
-                            Some(color) => wgpu::LoadOp::Clear(color),
-                            None => wgpu::LoadOp::Load,
-                        },
+                        load: wgpu::LoadOp::Load,
                         store: true,
                     },
                 }],
                 depth_stencil_attachment: None,
             });
+        }
 
-            if !render.queue.is_empty() {
-                for (
-                    idx,
-                    RenderData {
-                        instance_data: DrawData { transform, .. },
-                        ..
-                    },
-                ) in render.queue.iter().enumerate()
-                {
-                    let start = idx * uniform_alignment as usize;
-                    self.uniform_buffer_data[start..start + UNIFORM_SIZE].copy_from_slice(
-                        bytemuck::cast_slice(&transform.as_matrix().to_cols_array_2d()),
-                    )
-                }
-                self.queue
-                    .write_buffer(&self.uniform_buffer, 0, &self.uniform_buffer_data);
-
-                for (
-                    idx,
-                    RenderData {
-                        pipeline_data,
-                        instance_count,
-                        instance_data: DrawData { pipeline_id, .. },
-                    },
-                ) in render.queue.iter().enumerate()
-                {
-                    render_pass.set_pipeline(&self.pipeline_store[*pipeline_id]);
-                    render_pass.set_bind_group(0, &pipeline_data.bind_group, &[]);
-                    render_pass.set_bind_group(1, &self.uniform_bind_groups[idx], &[]);
-                    render_pass.set_vertex_buffer(0, pipeline_data.mesh_buffer.vertex.0.slice(..));
-                    render_pass.set_vertex_buffer(1, pipeline_data.instance_buffer.slice(..));
-                    render_pass.set_index_buffer(
-                        pipeline_data.mesh_buffer.index.0.slice(..),
-                        wgpu::IndexFormat::Uint16,
-                    );
-                    render_pass.draw_indexed(
-                        0..pipeline_data.mesh_buffer.index.1,
-                        0,
-                        0..*instance_count,
-                    );
-                }
-            }
+        let mut uniform_start_idx = 0;
+        for group in &render.render_groups {
+            println!(
+                "Group Target: {:?} ({} draws)",
+                group.target_id,
+                group.queue.len()
+            );
+            self.render_group(&mut encoder, &view, group, uniform_start_idx);
+            uniform_start_idx += group.queue.len();
         }
 
         self.queue.submit(std::iter::once(encoder.finish()));
         output.present();
+        println!("Render finished!");
     }
 }

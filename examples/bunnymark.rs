@@ -32,7 +32,7 @@ impl common::Example for DrawImageExample {
         }
     }
 
-    fn update(&mut self) {
+    fn update(&mut self, _ctx: &mut GraphicsContext) {
         if self.prev.elapsed().as_secs_f32() > 0.1 {
             // Increase by 2%
             for i in 0..((self.bunnies.len() as f32 * 0.02) as u32).max(50) {

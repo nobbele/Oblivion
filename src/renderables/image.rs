@@ -4,7 +4,7 @@ use wgpu::util::DeviceExt;
 
 use crate::{GraphicsContext, PipelineData, Render, Transform};
 
-/// Renderable image object.
+/// Essentially just a textured rectangle.
 pub struct Image {
     data: PipelineData,
 }

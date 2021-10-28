@@ -1,6 +1,6 @@
 use crate::{helpers::create_pipeline, GraphicsContext};
 
-/// Shader object.
+/// Shaders are used to change how objects are drawn.
 pub struct Shader {
     pub(crate) pipeline_id: usize,
 }
