@@ -9,6 +9,7 @@ impl Shader {
     /// Creates a new shader.
     pub fn new(ctx: &mut GraphicsContext, source: wgpu::ShaderSource) -> Self {
         ctx.pipeline_store.push(create_pipeline(
+            "CustomShader",
             &ctx.device,
             ctx.config.format,
             source,

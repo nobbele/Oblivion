@@ -39,6 +39,7 @@ pub fn get_device_queue(adapter: &Adapter) -> OblivionResult<(Device, Queue)> {
 }
 
 pub fn create_pipeline(
+    name: &str,
     device: &Device,
     format: wgpu::TextureFormat,
     source: wgpu::ShaderSource,
@@ -46,18 +47,18 @@ pub fn create_pipeline(
     mvp_bind_group_layout: &wgpu::BindGroupLayout,
 ) -> wgpu::RenderPipeline {
     let shader = device.create_shader_module(&wgpu::ShaderModuleDescriptor {
-        label: Some("Oblivion_Shader"),
+        label: Some(&format!("Oblivion_{}Shader", name)),
         source,
     });
 
     let render_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-        label: Some("Oblivion_RenderPipelineLayout"),
+        label: Some(&format!("Oblivion_{}RenderPipelineLayout", name)),
         bind_group_layouts: &[texture_bind_group_layout, mvp_bind_group_layout],
         push_constant_ranges: &[],
     });
 
     let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-        label: Some("Oblivion_RenderPipeline"),
+        label: Some(&format!("Oblivion_{}RenderPipeline", name)),
         layout: Some(&render_pipeline_layout),
         vertex: wgpu::VertexState {
             module: &shader,

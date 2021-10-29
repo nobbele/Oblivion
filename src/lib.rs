@@ -75,7 +75,9 @@ impl Angle {
     /// Create angle from degrees. (1 turn = 360°)
     #[inline]
     pub fn from_degrees(deg: f32) -> Self {
-        Angle { radians: deg }
+        Angle {
+            radians: deg.to_radians(),
+        }
     }
 
     /// Get the radian value of this angle. (1 turn = 2π)
@@ -131,13 +133,14 @@ pub struct Transform {
 }
 
 impl Transform {
-    pub(crate) fn as_matrix(&self) -> glam::Mat4 {
-        glam::Mat4::from_scale_rotation_translation(
-            glam::vec3(self.scale.x, self.scale.y, 1.0),
-            glam::Quat::from_rotation_z(self.rotation.rad()),
-            // This is supposed to be p*2-1 for snorm but for reasons the -1 has to be in the shader.
-            glam::vec3(self.position.x * 2.0, self.position.y * 2.0, 0.0),
-        )
+    pub(crate) fn as_array(&self) -> [f32; 5] {
+        [
+            self.position.x,
+            self.position.y,
+            self.scale.x,
+            self.scale.y,
+            self.rotation.rad(),
+        ]
     }
 }
 

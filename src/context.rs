@@ -8,7 +8,7 @@ use crate::{
     Transform, QUAD_INDICES, QUAD_VERTICES,
 };
 
-type UniformType = [[f32; 4]; 4];
+type UniformType = [f32; 5];
 const UNIFORM_SIZE: usize = std::mem::size_of::<UniformType>();
 
 /// Context for graphics. This stores the graphics device, render queue, window surface, and more.
@@ -107,6 +107,7 @@ impl GraphicsContext {
             });
 
         let standard_pipeline = create_pipeline(
+            "Standard",
             &device,
             config.format,
             wgpu::ShaderSource::Wgsl(include_str!("../resources/shaders/shader.wgsl").into()),
@@ -114,6 +115,7 @@ impl GraphicsContext {
             &mvp_bind_group_layout,
         );
         let text_pipeline = create_pipeline(
+            "Text",
             &device,
             config.format,
             wgpu::ShaderSource::Wgsl(include_str!("../resources/shaders/text_shader.wgsl").into()),
@@ -138,9 +140,7 @@ impl GraphicsContext {
             &wgpu::util::BufferInitDescriptor {
                 label: Some("Oblivion_IdentityInstanceBuffer"),
                 usage: wgpu::BufferUsages::VERTEX,
-                contents: bytemuck::cast_slice(&[
-                    Transform::default().as_matrix().to_cols_array_2d(),
-                ]),
+                contents: bytemuck::cast_slice(&[Transform::default().as_array()]),
             },
         ));
 
@@ -210,9 +210,8 @@ impl GraphicsContext {
             ) in group.queue.iter().enumerate()
             {
                 let start = (idx + uniform_start_idx) * uniform_alignment as usize;
-                self.uniform_buffer_data[start..start + UNIFORM_SIZE].copy_from_slice(
-                    bytemuck::cast_slice(&transform.as_matrix().to_cols_array_2d()),
-                )
+                self.uniform_buffer_data[start..start + UNIFORM_SIZE]
+                    .copy_from_slice(bytemuck::cast_slice(&transform.as_array()))
             }
             self.queue
                 .write_buffer(&self.uniform_buffer, 0, &self.uniform_buffer_data);

@@ -70,7 +70,7 @@ impl common::Example for DrawCanvasExample {
         self.text_real.draw(
             render,
             Transform {
-                position: [0.75, 0.75].into(),
+                position: [0.5, 0.25].into(),
                 scale: [0.25, 0.25].into(),
                 ..Default::default()
             },

@@ -194,10 +194,11 @@ impl Text {
                         .flatten()
                         .map(|mut v| {
                             v.position = [
-                                (v.position.x) / max_point.x * 2.0 - 1.0,
-                                (v.position.y - 72.0 / 2.0) / max_point.x * -2.0,
+                                v.position.x / max_point.x,
+                                0.5 - ((v.position.y - 72.0 / 2.0) / max_point.x),
                             ]
                             .into();
+                            dbg!(v.position);
                             v
                         })
                         .collect::<Vec<_>>();

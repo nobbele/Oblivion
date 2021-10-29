@@ -23,8 +23,24 @@ impl common::Example for DrawImageExample {
             self.image.draw(
                 render,
                 Transform {
+                    position: [0.0, 0.0].into(),
+                    scale: [0.125, 0.125].into(),
+                    ..Default::default()
+                },
+            );
+            self.image.draw(
+                render,
+                Transform {
                     position: [0.5, 0.5].into(),
                     scale: [0.25, 0.25].into(),
+                    ..Default::default()
+                },
+            );
+            self.image.draw(
+                render,
+                Transform {
+                    position: [1.0, 1.0].into(),
+                    scale: [0.5, 0.5].into(),
                     ..Default::default()
                 },
             );

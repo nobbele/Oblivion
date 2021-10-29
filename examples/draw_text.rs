@@ -19,6 +19,7 @@ impl common::Example for DrawTextExample {
             render,
             Transform {
                 position: [0.5, 0.5].into(),
+                scale: [0.5, 0.5].into(),
                 ..Default::default()
             },
         );
