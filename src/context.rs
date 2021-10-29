@@ -186,7 +186,12 @@ impl GraphicsContext {
                 resolve_target: None,
                 ops: wgpu::Operations {
                     load: match group.clear_color {
-                        Some(color) => wgpu::LoadOp::Clear(color),
+                        Some(color) => wgpu::LoadOp::Clear(wgpu::Color {
+                            r: color.r as _,
+                            g: color.g as _,
+                            b: color.b as _,
+                            a: color.a as _,
+                        }),
                         None => wgpu::LoadOp::Load,
                     },
                     store: true,

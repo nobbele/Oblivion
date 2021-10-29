@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use wgpu::{util::DeviceExt, Color};
+use wgpu::util::DeviceExt;
 
 use crate::{Transform, Vertex};
 
@@ -144,6 +144,6 @@ impl Default for TargetId {
 #[derive(Default)]
 pub(crate) struct RenderGroup {
     pub target_id: TargetId,
-    pub clear_color: Option<Color>,
+    pub clear_color: Option<rgb::RGBA<f32, f32>>,
     pub queue: Vec<RenderData>,
 }

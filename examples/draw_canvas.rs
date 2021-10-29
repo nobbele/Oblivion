@@ -30,15 +30,7 @@ impl common::Example for DrawCanvasExample {
     }
 
     fn draw(&self, render: &mut Render) {
-        oblivion::clear(
-            render,
-            wgpu::Color {
-                r: 0.1,
-                g: 0.2,
-                b: 0.3,
-                a: 1.0,
-            },
-        );
+        oblivion::clear(render, [0.1, 0.2, 0.3, 1.0]);
         oblivion::push_canvas(render, &self.canvas_hidden);
         self.text_hidden.draw(
             render,
@@ -50,15 +42,7 @@ impl common::Example for DrawCanvasExample {
         oblivion::pop_canvas(render);
 
         oblivion::push_canvas(render, &self.canvas_shown);
-        oblivion::clear(
-            render,
-            wgpu::Color {
-                r: 1.0,
-                g: 0.2,
-                b: 0.3,
-                a: 1.0,
-            },
-        );
+        oblivion::clear(render, [1.0, 0.2, 0.3, 1.0]);
         self.text_shown.draw(
             render,
             Transform {

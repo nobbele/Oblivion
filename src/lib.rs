@@ -202,8 +202,8 @@ impl Render {
 }
 
 /// Clears the screen with a color.
-pub fn clear(render: &mut Render, color: wgpu::Color) {
-    render.current_render_group().clear_color = Some(color);
+pub fn clear(render: &mut Render, color: impl Into<rgb::RGBA<f32, f32>>) {
+    render.current_render_group().clear_color = Some(color.into());
     // We also need to clear the draw queue to give the illusion of the clear color overwriting everything else
     // This should produce the same behavior as just overwriting everything else though.
     render.current_render_group().queue.clear();

@@ -76,15 +76,7 @@ impl common::Example for DrawImageExample {
     }
 
     fn draw(&self, render: &mut Render) {
-        oblivion::clear(
-            render,
-            wgpu::Color {
-                r: 0.1,
-                g: 0.2,
-                b: 0.3,
-                a: 1.0,
-            },
-        );
+        oblivion::clear(render, [0.1, 0.2, 0.3, 1.0]);
         for bunny in &self.bunnies {
             self.image.draw(
                 render,
