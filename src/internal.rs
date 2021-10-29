@@ -39,7 +39,7 @@ pub(crate) fn instance_desc<'a>() -> wgpu::VertexBufferLayout<'a> {
 pub(crate) const QUAD_VERTICES: &[Vertex] = &[
     // Top Left
     Vertex {
-        position: mint::Point2 { x: -1.0, y: 1.0 },
+        position: mint::Point2 { x: -1.0, y: -1.0 },
         uv: mint::Point2 { x: 0.0, y: 0.0 },
         color: rgb::RGB {
             r: 1.0,
@@ -49,7 +49,7 @@ pub(crate) const QUAD_VERTICES: &[Vertex] = &[
     },
     // Top Right
     Vertex {
-        position: mint::Point2 { x: 1.0, y: 1.0 },
+        position: mint::Point2 { x: 1.0, y: -1.0 },
         uv: mint::Point2 { x: 1.0, y: 0.0 },
         color: rgb::RGB {
             r: 1.0,
@@ -59,7 +59,7 @@ pub(crate) const QUAD_VERTICES: &[Vertex] = &[
     },
     // Bottom Left
     Vertex {
-        position: mint::Point2 { x: -1.0, y: -1.0 },
+        position: mint::Point2 { x: -1.0, y: 1.0 },
         uv: mint::Point2 { x: 0.0, y: 1.0 },
         color: rgb::RGB {
             r: 1.0,
@@ -69,7 +69,7 @@ pub(crate) const QUAD_VERTICES: &[Vertex] = &[
     },
     // Bottom Right
     Vertex {
-        position: mint::Point2 { x: 1.0, y: -1.0 },
+        position: mint::Point2 { x: 1.0, y: 1.0 },
         uv: mint::Point2 { x: 1.0, y: 1.0 },
         color: rgb::RGB {
             r: 1.0,
