@@ -20,13 +20,12 @@ impl MeshBuilder {
     }
 
     /// Adds a triangle to the builder.
-    #[must_use]
     pub fn tri(
-        mut self,
+        &mut self,
         position: impl Into<mint::Point2<f32>>,
         size: impl Into<mint::Vector2<f32>>,
         color: impl Into<rgb::RGB<f32>>,
-    ) -> Self {
+    ) -> &mut Self {
         let position = position.into();
         let size = size.into();
         let color = color.into();
@@ -54,13 +53,12 @@ impl MeshBuilder {
     }
 
     /// Adds a quadrilateral to the builder.
-    #[must_use]
     pub fn quad(
-        mut self,
+        &mut self,
         position: impl Into<mint::Point2<f32>>,
         size: impl Into<mint::Vector2<f32>>,
         color: impl Into<rgb::RGB<f32>>,
-    ) -> Self {
+    ) -> &mut Self {
         let position = position.into();
         let size = size.into();
         let color = color.into();
@@ -99,7 +97,7 @@ impl MeshBuilder {
     }
 
     /// Builds the mesh object.
-    pub fn build(self, ctx: &GraphicsContext) -> Mesh {
+    pub fn build(&self, ctx: &GraphicsContext) -> Mesh {
         Mesh::new(ctx, &self.vertex, &self.index)
     }
 }

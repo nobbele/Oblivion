@@ -12,7 +12,7 @@ impl common::Example for DrawMeshExample {
         let mut rng = rand::thread_rng();
         let mut builder = MeshBuilder::new();
         for _ in 0..100 {
-            builder = builder
+            builder
                 .tri(
                     [rng.gen_range(-1.0..=1.0), rng.gen_range(-1.0..=1.0)],
                     [rng.gen_range(0.25..=1.0), rng.gen_range(0.25..=1.0)],
@@ -30,7 +30,7 @@ impl common::Example for DrawMeshExample {
                         rng.gen_range(0.0..=1.0),
                         rng.gen_range(0.0..=1.0),
                     ],
-                )
+                );
         }
         let mesh = builder.build(&ctx);
         DrawMeshExample { mesh }
