@@ -4,7 +4,7 @@ use wgpu::util::DeviceExt;
 
 use crate::{Transform, Vertex};
 
-pub(crate) type InstanceType = [f32; 5];
+pub(crate) type InstanceType = [[f32; 4]; 4];
 pub(crate) const INSTANCE_SIZE: usize = std::mem::size_of::<InstanceType>();
 
 pub(crate) fn instance_desc<'a>() -> wgpu::VertexBufferLayout<'a> {
@@ -14,18 +14,23 @@ pub(crate) fn instance_desc<'a>() -> wgpu::VertexBufferLayout<'a> {
         attributes: &[
             wgpu::VertexAttribute {
                 offset: 0,
-                shader_location: 3,
-                format: wgpu::VertexFormat::Float32x2,
-            },
-            wgpu::VertexAttribute {
-                offset: std::mem::size_of::<[f32; 2]>() as wgpu::BufferAddress,
-                shader_location: 4,
-                format: wgpu::VertexFormat::Float32x2,
+                shader_location: 5,
+                format: wgpu::VertexFormat::Float32x4,
             },
             wgpu::VertexAttribute {
                 offset: std::mem::size_of::<[f32; 4]>() as wgpu::BufferAddress,
-                shader_location: 5,
-                format: wgpu::VertexFormat::Float32,
+                shader_location: 6,
+                format: wgpu::VertexFormat::Float32x4,
+            },
+            wgpu::VertexAttribute {
+                offset: std::mem::size_of::<[f32; 8]>() as wgpu::BufferAddress,
+                shader_location: 7,
+                format: wgpu::VertexFormat::Float32x4,
+            },
+            wgpu::VertexAttribute {
+                offset: std::mem::size_of::<[f32; 12]>() as wgpu::BufferAddress,
+                shader_location: 8,
+                format: wgpu::VertexFormat::Float32x4,
             },
         ],
     }
@@ -34,7 +39,7 @@ pub(crate) fn instance_desc<'a>() -> wgpu::VertexBufferLayout<'a> {
 pub(crate) const QUAD_VERTICES: &[Vertex] = &[
     // Top Left
     Vertex {
-        position: mint::Point2 { x: 0.0, y: 1.0 },
+        position: mint::Point2 { x: -1.0, y: 1.0 },
         uv: mint::Point2 { x: 0.0, y: 0.0 },
         color: rgb::RGB {
             r: 1.0,
@@ -54,7 +59,7 @@ pub(crate) const QUAD_VERTICES: &[Vertex] = &[
     },
     // Bottom Left
     Vertex {
-        position: mint::Point2 { x: 0.0, y: 0.0 },
+        position: mint::Point2 { x: -1.0, y: -1.0 },
         uv: mint::Point2 { x: 0.0, y: 1.0 },
         color: rgb::RGB {
             r: 1.0,
@@ -64,7 +69,7 @@ pub(crate) const QUAD_VERTICES: &[Vertex] = &[
     },
     // Bottom Right
     Vertex {
-        position: mint::Point2 { x: 1.0, y: 0.0 },
+        position: mint::Point2 { x: 1.0, y: -1.0 },
         uv: mint::Point2 { x: 1.0, y: 1.0 },
         color: rgb::RGB {
             r: 1.0,

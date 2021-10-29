@@ -1,5 +1,4 @@
 use oblivion::{GraphicsContext, Mesh, MeshBuilder, Render, Transform};
-use rand::Rng;
 #[path = "common.rs"]
 mod common;
 
@@ -9,30 +8,11 @@ struct DrawMeshExample {
 
 impl common::Example for DrawMeshExample {
     fn setup(ctx: &mut GraphicsContext) -> Self {
-        let mut rng = rand::thread_rng();
-        let mut builder = MeshBuilder::new();
-        for _ in 0..100 {
-            builder
-                .tri(
-                    [rng.gen_range(-1.0..=1.0), rng.gen_range(-1.0..=1.0)],
-                    [rng.gen_range(0.25..=1.0), rng.gen_range(0.25..=1.0)],
-                    [
-                        rng.gen_range(0.0..=1.0),
-                        rng.gen_range(0.0..=1.0),
-                        rng.gen_range(0.0..=1.0),
-                    ],
-                )
-                .quad(
-                    [rng.gen_range(-1.0..=1.0), rng.gen_range(-1.0..=1.0)],
-                    [rng.gen_range(0.25..=1.0), rng.gen_range(0.25..=1.0)],
-                    [
-                        rng.gen_range(0.0..=1.0),
-                        rng.gen_range(0.0..=1.0),
-                        rng.gen_range(0.0..=1.0),
-                    ],
-                );
-        }
-        let mesh = builder.build(&ctx);
+        let mesh = MeshBuilder::new()
+            .quad([1.0, 1.0], [0.5, 0.5], [1.0, 0.0, 0.0])
+            .quad([0.5, 0.5], [0.5, 0.5], [0.0, 1.0, 0.0])
+            .quad([0.0, 0.0], [0.5, 0.5], [0.0, 0.0, 1.0])
+            .build(&ctx);
         DrawMeshExample { mesh }
     }
 

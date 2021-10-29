@@ -124,7 +124,9 @@ impl ImageBatch {
             .iter()
             .zip(transform_data.chunks_exact_mut(INSTANCE_SIZE))
         {
-            transform_data_slice.copy_from_slice(bytemuck::cast_slice(&transform.as_array()));
+            transform_data_slice.copy_from_slice(bytemuck::cast_slice(
+                &transform.as_matrix().to_cols_array_2d(),
+            ));
         }
         ctx.queue.write_buffer(
             &self.data.instance_buffer,

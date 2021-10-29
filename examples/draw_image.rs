@@ -20,14 +20,14 @@ impl common::Example for DrawImageExample {
     fn draw(&self, render: &mut Render) {
         oblivion::clear(render, [0.1, 0.2, 0.3, 1.0]);
         for _ in 0..1 {
-            self.image.draw(
+            /*self.image.draw(
                 render,
                 Transform {
                     position: [0.0, 0.0].into(),
                     scale: [0.125, 0.125].into(),
                     ..Default::default()
                 },
-            );
+            );*/
             self.image.draw(
                 render,
                 Transform {
@@ -36,14 +36,14 @@ impl common::Example for DrawImageExample {
                     ..Default::default()
                 },
             );
-            self.image.draw(
+            /*self.image.draw(
                 render,
                 Transform {
                     position: [1.0, 1.0].into(),
                     scale: [0.5, 0.5].into(),
                     ..Default::default()
                 },
-            );
+            );*/
         }
     }
 }
