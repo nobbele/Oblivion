@@ -28,6 +28,8 @@ pub struct GraphicsContext {
     pub(crate) quad_mesh_buffer: Rc<MeshBuffer>,
     pub(crate) identity_instance_buffer: Rc<wgpu::Buffer>,
 
+    projection: glam::Mat4,
+
     uniform_alignment: u32,
     uniform_buffer_data: Vec<u8>,
     uniform_buffer: wgpu::Buffer,
@@ -146,6 +148,44 @@ impl GraphicsContext {
             },
         ));
 
+        fn ortho(
+            left: f32,
+            right: f32,
+            top: f32,
+            bottom: f32,
+            far: f32,
+            near: f32,
+        ) -> [[f32; 4]; 4] {
+            let c0r0 = 2.0 / (right - left);
+            let c0r1 = 0.0;
+            let c0r2 = 0.0;
+            let c0r3 = 0.0;
+
+            let c1r0 = 0.0;
+            let c1r1 = 2.0 / (top - bottom);
+            let c1r2 = 0.0;
+            let c1r3 = 0.0;
+
+            let c2r0 = 0.0;
+            let c2r1 = 0.0;
+            let c2r2 = -2.0 / (far - near);
+            let c2r3 = 0.0;
+
+            let c3r0 = -(right + left) / (right - left);
+            let c3r1 = -(top + bottom) / (top - bottom);
+            let c3r2 = -(far + near) / (far - near);
+            let c3r3 = 1.0;
+
+            // our matrices are column-major, so here we are.
+            [
+                [c0r0, c0r1, c0r2, c0r3],
+                [c1r0, c1r1, c1r2, c1r3],
+                [c2r0, c2r1, c2r2, c2r3],
+                [c3r0, c3r1, c3r2, c3r3],
+            ]
+        }
+        let projection = glam::Mat4::from_cols_array_2d(&ortho(0.0, 1.0, 0.0, 1.0, -1.0, 1.0));
+
         Ok(GraphicsContext {
             surface,
             device,
@@ -158,6 +198,8 @@ impl GraphicsContext {
             mvp_bind_group_layout,
 
             identity_instance_buffer,
+
+            projection,
 
             uniform_buffer,
             uniform_buffer_data: Vec::new(),
@@ -212,9 +254,9 @@ impl GraphicsContext {
             ) in group.queue.iter().enumerate()
             {
                 let start = (idx + uniform_start_idx) * uniform_alignment as usize;
-                self.uniform_buffer_data[start..start + UNIFORM_SIZE].copy_from_slice(
-                    bytemuck::cast_slice(&transform.as_matrix().to_cols_array_2d()),
-                )
+                let mat = self.projection * transform.as_matrix();
+                self.uniform_buffer_data[start..start + UNIFORM_SIZE]
+                    .copy_from_slice(bytemuck::cast_slice(&mat.to_cols_array_2d()))
             }
             self.queue
                 .write_buffer(&self.uniform_buffer, 0, &self.uniform_buffer_data);
