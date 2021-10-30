@@ -36,51 +36,6 @@ pub(crate) fn instance_desc<'a>() -> wgpu::VertexBufferLayout<'a> {
     }
 }
 
-pub(crate) const QUAD_VERTICES: &[Vertex] = &[
-    // Top Left
-    Vertex {
-        position: mint::Point2 { x: -1.0, y: -1.0 },
-        uv: mint::Point2 { x: 0.0, y: 0.0 },
-        color: rgb::RGB {
-            r: 1.0,
-            g: 1.0,
-            b: 1.0,
-        },
-    },
-    // Top Right
-    Vertex {
-        position: mint::Point2 { x: 1.0, y: -1.0 },
-        uv: mint::Point2 { x: 1.0, y: 0.0 },
-        color: rgb::RGB {
-            r: 1.0,
-            g: 1.0,
-            b: 1.0,
-        },
-    },
-    // Bottom Left
-    Vertex {
-        position: mint::Point2 { x: -1.0, y: 1.0 },
-        uv: mint::Point2 { x: 0.0, y: 1.0 },
-        color: rgb::RGB {
-            r: 1.0,
-            g: 1.0,
-            b: 1.0,
-        },
-    },
-    // Bottom Right
-    Vertex {
-        position: mint::Point2 { x: 1.0, y: 1.0 },
-        uv: mint::Point2 { x: 1.0, y: 1.0 },
-        color: rgb::RGB {
-            r: 1.0,
-            g: 1.0,
-            b: 1.0,
-        },
-    },
-];
-
-pub(crate) const QUAD_INDICES: &[u16] = &[0, 1, 2, 1, 3, 2];
-
 pub(crate) struct MeshBuffer {
     pub vertex: (wgpu::Buffer, u32),
     pub index: (wgpu::Buffer, u32),

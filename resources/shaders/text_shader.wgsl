@@ -41,9 +41,9 @@ fn main(
     var out: VertexOutput;
     out.color = model.color;
     out.uv = model.uv;
-    var instance_position = (instance_matrix * vec4<f32>(model.position, 0.0, 1.0)).xy;
-    var target_position = (uniform.mvp * vec4<f32>(instance_position, 0.0, 1.0)).xy;
-    out.clip_position = vec4<f32>(target_position - vec2<f32>(1.0, 1.0), 0.0, 1.0);
+    let position = instance_matrix * vec4<f32>(model.position, 0.0, 1.0);
+    let out_pos = uniform.mvp * position;
+    out.clip_position = out_pos;
     return out;
 }
 

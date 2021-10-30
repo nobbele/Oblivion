@@ -27,15 +27,7 @@ impl MeshBuilder {
         color: impl Into<rgb::RGB<f32>>,
     ) -> &mut Self {
         let position = position.into();
-        let position = mint::Point2 {
-            x: position.x * 2.0,
-            y: position.y * 2.0,
-        };
         let size = size.into();
-        let size = mint::Vector2 {
-            x: size.x * 2.0,
-            y: size.y * 2.0,
-        };
         let color = color.into();
         self.vertex.extend([
             Vertex {
@@ -68,34 +60,26 @@ impl MeshBuilder {
         color: impl Into<rgb::RGB<f32>>,
     ) -> &mut Self {
         let position = position.into();
-        let position = mint::Point2 {
-            x: position.x * 2.0,
-            y: position.y * 2.0,
-        };
         let size = size.into();
-        let size = mint::Vector2 {
-            x: size.x * 2.0,
-            y: size.y * 2.0,
-        };
         let color = color.into();
         self.vertex.extend([
             Vertex {
-                position: [position.x - size.x / 2.0, position.y + size.y / 2.0].into(),
+                position: [position.x, position.y].into(),
                 color,
                 uv: [0.0, 0.0].into(),
             },
             Vertex {
-                position: [position.x + size.x / 2.0, position.y + size.y / 2.0].into(),
+                position: [position.x + size.x, position.y].into(),
                 color,
                 uv: [0.0, 0.0].into(),
             },
             Vertex {
-                position: [position.x - size.x / 2.0, position.y - size.y / 2.0].into(),
+                position: [position.x, position.y + size.y].into(),
                 color,
                 uv: [0.0, 0.0].into(),
             },
             Vertex {
-                position: [position.x + size.x / 2.0, position.y - size.y / 2.0].into(),
+                position: [position.x + size.x, position.y + size.y].into(),
                 color,
                 uv: [0.0, 0.0].into(),
             },

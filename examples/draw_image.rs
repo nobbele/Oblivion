@@ -32,7 +32,7 @@ impl common::Example for DrawImageExample {
                 render,
                 Transform {
                     position: [0.5, 0.5].into(),
-                    scale: [0.25, 0.25].into(),
+                    scale: [0.5, 0.5].into(),
                     ..Default::default()
                 },
             );

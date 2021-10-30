@@ -53,6 +53,51 @@ impl Vertex {
     }
 }
 
+pub const QUAD_VERTICES: &[Vertex] = &[
+    // Top Left
+    Vertex {
+        position: mint::Point2 { x: 0.0, y: 0.0 },
+        uv: mint::Point2 { x: 0.0, y: 0.0 },
+        color: rgb::RGB {
+            r: 1.0,
+            g: 1.0,
+            b: 1.0,
+        },
+    },
+    // Top Right
+    Vertex {
+        position: mint::Point2 { x: 1.0, y: 0.0 },
+        uv: mint::Point2 { x: 1.0, y: 0.0 },
+        color: rgb::RGB {
+            r: 1.0,
+            g: 1.0,
+            b: 1.0,
+        },
+    },
+    // Bottom Left
+    Vertex {
+        position: mint::Point2 { x: 0.0, y: 1.0 },
+        uv: mint::Point2 { x: 0.0, y: 1.0 },
+        color: rgb::RGB {
+            r: 1.0,
+            g: 1.0,
+            b: 1.0,
+        },
+    },
+    // Bottom Right
+    Vertex {
+        position: mint::Point2 { x: 1.0, y: 1.0 },
+        uv: mint::Point2 { x: 1.0, y: 1.0 },
+        color: rgb::RGB {
+            r: 1.0,
+            g: 1.0,
+            b: 1.0,
+        },
+    },
+];
+
+pub const QUAD_INDICES: &[u16] = &[0, 1, 2, 1, 3, 2];
+
 // TODO make this a separate crate
 /// Angle, uses radians internally.
 ///
@@ -130,16 +175,22 @@ pub struct Transform {
     pub scale: mint::Vector2<f32>,
     /// Rotation.
     pub rotation: Angle,
+    /// Offset.
+    pub offset: mint::Point2<f32>,
 }
 
 impl Transform {
     pub(crate) fn as_matrix(&self) -> glam::Mat4 {
-        glam::Mat4::from_scale_rotation_translation(
-            glam::vec3(self.scale.x, self.scale.y, 1.0),
-            glam::Quat::from_rotation_z(self.rotation.rad()),
-            // This is supposed to be p*2-1 for snorm but for reasons the -1 has to be in the shader.
-            glam::vec3(self.position.x * 2.0, self.position.y * 2.0, 0.0),
-        )
+        let translate =
+            glam::Mat4::from_translation(glam::vec3(self.position.x, self.position.y, 0.0));
+        let offset_inv = glam::Mat4::from_translation(glam::vec3(
+            -self.offset.x + 0.25,
+            -self.offset.y + 0.25,
+            0.0,
+        ));
+        let rotation = glam::Mat4::from_rotation_z(self.rotation.rad());
+        let scale = glam::Mat4::from_scale(glam::vec3(self.scale.x, self.scale.y, 1.0));
+        translate * rotation * scale * offset_inv
     }
 }
 
@@ -149,6 +200,7 @@ impl Default for Transform {
             position: [0.0, 0.0].into(),
             scale: [1.0, 1.0].into(),
             rotation: Angle::from_radians(0.0),
+            offset: [0.5, 0.5].into(),
         }
     }
 }
