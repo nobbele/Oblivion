@@ -78,11 +78,13 @@ impl Text {
     }
 
     pub fn flush(&mut self, ctx: &mut GraphicsContext) {
-        for frag in &self.fragments {
-            self.glyph_brush.queue(
-                Section::default().add_text(glyph_brush::Text::new(&frag.text).with_scale(72.0)),
-            );
-        }
+        let section = Section::default().with_text(
+            self.fragments
+                .iter()
+                .map(|frag| glyph_brush::Text::new(&frag.text).with_scale(72.0))
+                .collect::<Vec<_>>(),
+        );
+        self.glyph_brush.queue(&section);
 
         match self.glyph_brush.process_queued(
             |rect, tex_data| {
@@ -216,11 +218,7 @@ impl Text {
                         .into_iter()
                         .map(|vertex_list| {
                             vertex_list.map(|mut v| {
-                                v.position = [
-                                    v.position.x / 900.0,
-                                    (v.position.y - 72.0 / 2.0) / 900.0 + 0.5,
-                                ]
-                                .into();
+                                v.position = [v.position.x / 900.0, v.position.y / 900.0].into();
                                 v
                             })
                         })

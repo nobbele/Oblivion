@@ -4,13 +4,20 @@ mod common;
 
 struct DrawTextExample {
     text: Text,
+    more_text: Text,
     count: u32,
 }
 
 impl common::Example for DrawTextExample {
     fn setup(ctx: &mut GraphicsContext) -> Self {
+        let mut more_text = Text::new(ctx);
+        more_text.add_text(["Hello ", "World\n"]);
+        more_text.add_text(["Foobar"]);
+        more_text.add_text(["FoobarFoobarFoobarFoobar"]);
+        more_text.flush(ctx);
         DrawTextExample {
             text: Text::new(ctx),
+            more_text,
             count: 0,
         }
     }
@@ -24,6 +31,14 @@ impl common::Example for DrawTextExample {
 
     fn draw(&self, render: &mut Render) {
         oblivion::clear(render, [0.1, 0.2, 0.3, 1.0]);
+        self.more_text.draw(
+            render,
+            Transform {
+                position: [0.0, 0.0].into(),
+                scale: [0.5, 0.5].into(),
+                ..Default::default()
+            },
+        );
         self.text.draw(
             render,
             Transform {
