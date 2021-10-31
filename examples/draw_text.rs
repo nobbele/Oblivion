@@ -4,13 +4,22 @@ mod common;
 
 struct DrawTextExample {
     text: Text,
+    count: u32,
 }
 
 impl common::Example for DrawTextExample {
     fn setup(ctx: &mut GraphicsContext) -> Self {
-        let mut text = Text::new(ctx);
-        text.add_text(ctx, &["Hello World"]).unwrap();
-        DrawTextExample { text }
+        DrawTextExample {
+            text: Text::new(ctx),
+            count: 0,
+        }
+    }
+
+    fn update(&mut self, ctx: &mut GraphicsContext) {
+        self.count += 1;
+        self.text.clear();
+        self.text.add_text([format!("Frame Count: {}", self.count)]);
+        self.text.flush(ctx);
     }
 
     fn draw(&self, render: &mut Render) {

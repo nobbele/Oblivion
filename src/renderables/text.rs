@@ -1,70 +1,90 @@
 use std::{num::NonZeroU32, rc::Rc};
 
-use glyph_brush::{ab_glyph::FontArc, GlyphBrushBuilder, GlyphCruncher, Section};
+use glyph_brush::{ab_glyph::FontArc, GlyphBrush, GlyphBrushBuilder, Section};
 
-use crate::{
-    GraphicsContext, MeshBuffer, OblivionError, OblivionResult, PipelineData, Render, Transform,
-    Vertex,
-};
+use crate::{GraphicsContext, MeshBuffer, OblivionError, PipelineData, Render, Transform, Vertex};
+
+pub struct TextFragment {
+    text: String,
+}
+
+impl From<&str> for TextFragment {
+    fn from(s: &str) -> Self {
+        TextFragment { text: s.to_owned() }
+    }
+}
+
+impl From<String> for TextFragment {
+    fn from(s: String) -> Self {
+        TextFragment { text: s }
+    }
+}
 
 /// Renderable text object.
 pub struct Text {
     pipeline_data: PipelineData,
+    glyph_brush: GlyphBrush<[Vertex; 4], glyph_brush::Extra>,
+    texture: wgpu::Texture,
+    upload_buffer: wgpu::Buffer,
+    upload_buffer_size: wgpu::BufferAddress,
+    fragments: Vec<TextFragment>,
+    dirty: bool,
 }
 
 impl Text {
     /// Creates a new text object.
     pub fn new(ctx: &mut GraphicsContext) -> Self {
-        let (_texture, bind_group) = create_texture(ctx, [1, 1]);
         let mesh_buffer = MeshBuffer::from_slices(&ctx.device, &[], &[]);
+        let default_font =
+            FontArc::try_from_slice(include_bytes!("../../resources/fonts/DejaVuSans.ttf"))
+                .map_err(OblivionError::LoadFont)
+                .unwrap();
+        let upload_buffer_size = wgpu::COPY_BYTES_PER_ROW_ALIGNMENT as wgpu::BufferAddress * 100;
+        let upload_buffer = ctx.device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("Oblivion_TextUploadBuffer"),
+            size: upload_buffer_size,
+            usage: wgpu::BufferUsages::COPY_SRC | wgpu::BufferUsages::MAP_WRITE,
+            mapped_at_creation: false,
+        });
+        let glyph_brush = GlyphBrushBuilder::using_font(default_font).build();
+        let texture_dimensions = glyph_brush.texture_dimensions();
+        let texture_dimensions = [texture_dimensions.0, texture_dimensions.1];
+        let (texture, bind_group) = create_texture(ctx, texture_dimensions);
         Text {
             pipeline_data: PipelineData {
                 mesh_buffer: Rc::new(mesh_buffer),
                 bind_group: Rc::new(bind_group),
                 instance_buffer: Rc::clone(&ctx.identity_instance_buffer),
             },
+            glyph_brush,
+            texture,
+            upload_buffer,
+            upload_buffer_size,
+            fragments: Vec::new(),
+            dirty: false,
         }
     }
 
     // Make a add_text + flush method instead?
     /// Adds texts to the text object.
-    pub fn add_text(&mut self, ctx: &mut GraphicsContext, texts: &[&str]) -> OblivionResult<()> {
-        let mut upload_buffer_size =
-            wgpu::COPY_BYTES_PER_ROW_ALIGNMENT as wgpu::BufferAddress * 100;
-        let mut upload_buffer = ctx.device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("Oblivion_TextUploadBuffer"),
-            size: upload_buffer_size,
-            usage: wgpu::BufferUsages::COPY_SRC | wgpu::BufferUsages::MAP_WRITE,
-            mapped_at_creation: false,
-        });
+    pub fn add_text<const N: usize>(&mut self, frags: [impl Into<TextFragment>; N]) {
+        self.fragments
+            .extend(frags.map(|frag| frag.into()).into_iter());
+        self.dirty = true;
+    }
 
-        let font = FontArc::try_from_slice(include_bytes!("../../resources/fonts/DejaVuSans.ttf"))
-            .map_err(OblivionError::LoadFont)?;
-        let mut glyph_brush = GlyphBrushBuilder::using_font(font).build();
-        let sections = texts
-            .iter()
-            .map(|&text| Section::default().add_text(glyph_brush::Text::new(text).with_scale(72.0)))
-            .collect::<Vec<_>>();
-        for section in &sections {
-            glyph_brush.queue(section);
+    pub fn clear(&mut self) {
+        self.fragments.clear();
+    }
+
+    pub fn flush(&mut self, ctx: &mut GraphicsContext) {
+        for frag in &self.fragments {
+            self.glyph_brush.queue(
+                Section::default().add_text(glyph_brush::Text::new(&frag.text).with_scale(72.0)),
+            );
         }
 
-        let texture_dimensions = glyph_brush.texture_dimensions();
-        let (texture, bind_group) =
-            create_texture(ctx, [texture_dimensions.0, texture_dimensions.1]);
-        self.pipeline_data.bind_group = Rc::new(bind_group);
-
-        let max_point = sections
-            .iter()
-            .filter_map(|section| glyph_brush.glyph_bounds(section))
-            .map(|bounds| bounds.max)
-            .reduce(|a, b| glyph_brush::ab_glyph::Point {
-                x: a.x.max(b.x),
-                y: a.y.max(b.y),
-            })
-            .unwrap_or_default();
-
-        let mesh_buffer = match glyph_brush.process_queued(
+        match self.glyph_brush.process_queued(
             |rect, tex_data| {
                 let [width, height] = [
                     rect.width() as wgpu::BufferAddress,
@@ -80,34 +100,37 @@ impl Text {
                 let padded_width = width + padded_width_padding;
 
                 let padded_data_size = padded_width * height;
-                if upload_buffer_size < padded_data_size {
-                    upload_buffer = ctx.device.create_buffer(&wgpu::BufferDescriptor {
+                if self.upload_buffer_size < padded_data_size {
+                    self.upload_buffer = ctx.device.create_buffer(&wgpu::BufferDescriptor {
                         label: Some("Oblivion_TextUploadBuffer"),
                         size: padded_data_size,
                         usage: wgpu::BufferUsages::COPY_SRC | wgpu::BufferUsages::MAP_WRITE,
                         mapped_at_creation: false,
                     });
 
-                    upload_buffer_size = padded_data_size;
+                    self.upload_buffer_size = padded_data_size;
                 }
 
-                let fut = upload_buffer.slice(..).map_async(wgpu::MapMode::Write);
+                let fut = self
+                    .upload_buffer
+                    .slice(..padded_data_size)
+                    .map_async(wgpu::MapMode::Write);
                 ctx.device.poll(wgpu::Maintain::Wait);
                 pollster::block_on(fut)
                     .map_err(OblivionError::MapBuffer)
                     .unwrap();
 
                 for row in 0..height {
-                    upload_buffer
-                        .slice(row * padded_width..row * padded_width + width)
-                        .get_mapped_range_mut()
+                    self.upload_buffer
+                        .slice(row * padded_width..(row + 1) * padded_width)
+                        .get_mapped_range_mut()[0..width as usize]
                         .copy_from_slice(
                             &tex_data[row as usize * width as usize
                                 ..(row as usize + 1) * width as usize],
                         )
                 }
 
-                upload_buffer.unmap();
+                self.upload_buffer.unmap();
 
                 let mut command_encoder =
                     ctx.device
@@ -116,7 +139,7 @@ impl Text {
                         });
                 command_encoder.copy_buffer_to_texture(
                     wgpu::ImageCopyBuffer {
-                        buffer: &upload_buffer,
+                        buffer: &self.upload_buffer,
                         layout: wgpu::ImageDataLayout {
                             offset: 0,
                             bytes_per_row: NonZeroU32::new(padded_width as u32),
@@ -124,7 +147,7 @@ impl Text {
                         },
                     },
                     wgpu::ImageCopyTexture {
-                        texture: &texture,
+                        texture: &self.texture,
                         mip_level: 0,
                         origin: wgpu::Origin3d {
                             x: offset[0] as u32,
@@ -191,29 +214,44 @@ impl Text {
                         .collect::<Vec<_>>();
                     let vertices = vertices_list
                         .into_iter()
-                        .flatten()
-                        .map(|mut v| {
-                            v.position = [
-                                v.position.x / max_point.x,
-                                (v.position.y - 72.0 / 2.0) / max_point.x + 0.5,
-                            ]
-                            .into();
-                            dbg!(v.position);
-                            v
+                        .map(|vertex_list| {
+                            vertex_list.map(|mut v| {
+                                v.position = [
+                                    v.position.x / 900.0,
+                                    (v.position.y - 72.0 / 2.0) / 900.0 + 0.5,
+                                ]
+                                .into();
+                                v
+                            })
                         })
+                        .flatten()
                         .collect::<Vec<_>>();
-                    MeshBuffer::from_slices(&ctx.device, &vertices, &indices)
+                    let mesh_buffer = MeshBuffer::from_slices(&ctx.device, &vertices, &indices);
+                    self.pipeline_data.mesh_buffer = Rc::new(mesh_buffer);
                 }
-                glyph_brush::BrushAction::ReDraw => todo!(),
+                glyph_brush::BrushAction::ReDraw => {}
             },
-            Err(e) => panic!("{:#?}", e),
+            Err(e) => match e {
+                glyph_brush::BrushError::TextureTooSmall { suggested } => {
+                    let new_dimensions = [suggested.0, suggested.1];
+                    self.resize_texture(ctx, new_dimensions);
+                }
+            },
         };
-        self.pipeline_data.mesh_buffer = Rc::new(mesh_buffer);
-        Ok(())
+        self.dirty = false;
+    }
+
+    fn resize_texture(&mut self, ctx: &mut GraphicsContext, dimensions: [u32; 2]) {
+        let (texture, bind_group) = create_texture(ctx, dimensions);
+        self.texture = texture;
+        self.pipeline_data.bind_group = Rc::new(bind_group);
     }
 
     /// Pushes this text object to the draw queue.
     pub fn draw(&self, render: &mut Render, transform: Transform) {
+        if self.dirty {
+            panic!("Call Text::flush before draw!");
+        }
         render.push_data(self.pipeline_data.clone(), 1, transform, 1);
     }
 }
