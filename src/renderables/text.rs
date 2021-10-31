@@ -1,22 +1,29 @@
 use std::{num::NonZeroU32, rc::Rc};
 
-use glyph_brush::{ab_glyph::FontArc, GlyphBrush, GlyphBrushBuilder, Section};
+use glyph_brush::{ab_glyph::FontArc, FontId, GlyphBrush, GlyphBrushBuilder, Section};
 
 use crate::{GraphicsContext, MeshBuffer, OblivionError, PipelineData, Render, Transform, Vertex};
 
 pub struct TextFragment {
     text: String,
+    font: Option<FontId>,
 }
 
 impl From<&str> for TextFragment {
     fn from(s: &str) -> Self {
-        TextFragment { text: s.to_owned() }
+        TextFragment {
+            text: s.to_owned(),
+            font: None,
+        }
     }
 }
 
 impl From<String> for TextFragment {
     fn from(s: String) -> Self {
-        TextFragment { text: s }
+        TextFragment {
+            text: s,
+            font: None,
+        }
     }
 }
 
@@ -29,12 +36,14 @@ pub struct Text {
     upload_buffer_size: wgpu::BufferAddress,
     fragments: Vec<TextFragment>,
     dirty: bool,
+    default_font_id: FontId,
 }
 
 impl Text {
     /// Creates a new text object.
     pub fn new(ctx: &mut GraphicsContext) -> Self {
         let mesh_buffer = MeshBuffer::from_slices(&ctx.device, &[], &[]);
+        // TODO remove default font
         let default_font =
             FontArc::try_from_slice(include_bytes!("../../resources/fonts/DejaVuSans.ttf"))
                 .map_err(OblivionError::LoadFont)
@@ -46,7 +55,8 @@ impl Text {
             usage: wgpu::BufferUsages::COPY_SRC | wgpu::BufferUsages::MAP_WRITE,
             mapped_at_creation: false,
         });
-        let glyph_brush = GlyphBrushBuilder::using_font(default_font).build();
+        let mut glyph_brush = GlyphBrushBuilder::using_fonts(vec![]).build();
+        let default_font_id = glyph_brush.add_font(default_font);
         let texture_dimensions = glyph_brush.texture_dimensions();
         let texture_dimensions = [texture_dimensions.0, texture_dimensions.1];
         let (texture, bind_group) = create_texture(ctx, texture_dimensions);
@@ -62,6 +72,7 @@ impl Text {
             upload_buffer_size,
             fragments: Vec::new(),
             dirty: false,
+            default_font_id,
         }
     }
 
@@ -81,7 +92,11 @@ impl Text {
         let section = Section::default().with_text(
             self.fragments
                 .iter()
-                .map(|frag| glyph_brush::Text::new(&frag.text).with_scale(72.0))
+                .map(|frag| {
+                    glyph_brush::Text::new(&frag.text)
+                        .with_scale(72.0)
+                        .with_font_id(frag.font.unwrap_or(self.default_font_id))
+                })
                 .collect::<Vec<_>>(),
         );
         self.glyph_brush.queue(&section);
