@@ -16,6 +16,7 @@ rgb = "0.8.27"
 mint = "0.5.8"
 ngau = "0.1.0"
 thiserror = "1.0.30"
+lyon = "0.17.10"
 
 [dev-dependencies]
 winit = "0.25.0"

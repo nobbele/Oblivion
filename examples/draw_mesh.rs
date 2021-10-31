@@ -9,16 +9,35 @@ struct DrawMeshExample {
 impl common::Example for DrawMeshExample {
     fn setup(ctx: &mut GraphicsContext) -> Self {
         let mesh = MeshBuilder::new()
-            .quad([0.0, 0.0], [1.0 / 3.0, 1.0 / 3.0], [0.0, 0.0, 1.0])
+            .quad(
+                [0.0, 0.0],
+                [1.0 / 3.0, 1.0 / 3.0],
+                [0.0, 0.0, 1.0],
+                oblivion::DrawMode::fill(),
+            )
             .quad(
                 [1.0 / 3.0, 1.0 / 3.0],
                 [1.0 / 3.0, 1.0 / 3.0],
                 [0.0, 1.0, 0.0],
+                oblivion::DrawMode::stroke(0.02),
             )
             .quad(
                 [2.0 / 3.0, 2.0 / 3.0],
                 [1.0 / 3.0, 1.0 / 3.0],
                 [1.0, 0.0, 0.0],
+                oblivion::DrawMode::fill(),
+            )
+            .tri(
+                [0.0, 2.0 / 3.0],
+                [1.0 / 3.0, 1.0 / 3.0],
+                [1.0, 0.0, 0.0],
+                oblivion::DrawMode::stroke(0.02),
+            )
+            .circle(
+                [2.0 / 3.0, 0.0],
+                [1.0 / 3.0, 1.0 / 3.0],
+                [1.0, 0.0, 0.0],
+                oblivion::DrawMode::stroke(0.02),
             )
             .build(&ctx);
         DrawMeshExample { mesh }

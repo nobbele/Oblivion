@@ -4,51 +4,134 @@ use wgpu::util::DeviceExt;
 
 use crate::{GraphicsContext, MeshBuffer, PipelineData, Render, Transform, Vertex};
 
+#[derive(Copy, Clone, PartialEq, Debug)]
+struct VertexBuilder {
+    color: rgb::RGB<f32>,
+}
+
+impl lyon::tessellation::StrokeVertexConstructor<Vertex> for VertexBuilder {
+    fn new_vertex(&mut self, vertex: lyon::tessellation::StrokeVertex) -> Vertex {
+        let position = vertex.position();
+        Vertex {
+            position: [position.x, position.y].into(),
+            uv: [0.0, 0.0].into(),
+            color: self.color,
+        }
+    }
+}
+
+impl lyon::tessellation::FillVertexConstructor<Vertex> for VertexBuilder {
+    fn new_vertex(&mut self, vertex: lyon::tessellation::FillVertex) -> Vertex {
+        let position = vertex.position();
+        Vertex {
+            position: [position.x, position.y].into(),
+            uv: [0.0, 0.0].into(),
+            color: self.color,
+        }
+    }
+}
+
+pub enum DrawMode {
+    Fill { tolerance: f32 },
+    Stroke { width: f32, tolerance: f32 },
+}
+
+impl DrawMode {
+    pub fn fill() -> DrawMode {
+        DrawMode::Fill {
+            tolerance: lyon::tessellation::FillOptions::DEFAULT_TOLERANCE / 1000.0,
+        }
+    }
+
+    pub fn stroke(width: f32) -> DrawMode {
+        DrawMode::Stroke {
+            width,
+            tolerance: lyon::tessellation::FillOptions::DEFAULT_TOLERANCE / 1000.0,
+        }
+    }
+}
+
+impl Default for DrawMode {
+    fn default() -> Self {
+        Self::fill()
+    }
+}
+
 /// Provides a way to build `Mesh` with convient functions such as triangle and rectangle generators.
-#[derive(Default)]
 pub struct MeshBuilder {
-    vertex: Vec<Vertex>,
-    base_index: u16,
-    index: Vec<u16>,
+    buffers: lyon::tessellation::VertexBuffers<Vertex, u16>,
 }
 
 // TODO correct UV
+// TODO take an offset
 impl MeshBuilder {
     /// Creates a new mesh builder object.
     pub fn new() -> Self {
-        MeshBuilder::default()
+        MeshBuilder {
+            buffers: lyon::tessellation::VertexBuffers::new(),
+        }
     }
 
-    /// Adds a triangle to the builder.
+    /// Adds a isosceles triangle to the builder.
     pub fn tri(
         &mut self,
         position: impl Into<mint::Point2<f32>>,
         size: impl Into<mint::Vector2<f32>>,
         color: impl Into<rgb::RGB<f32>>,
+        mode: DrawMode,
     ) -> &mut Self {
         let position = position.into();
         let size = size.into();
         let color = color.into();
-        self.vertex.extend([
-            Vertex {
-                position: [position.x, position.y + size.y / 2.0].into(),
-                color,
-                uv: [0.0, 0.0].into(),
-            },
-            Vertex {
-                position: [position.x - size.x / 2.0, position.y - size.y / 2.0].into(),
-                color,
-                uv: [0.0, 0.0].into(),
-            },
-            Vertex {
-                position: [position.x + size.x / 2.0, position.y - size.y / 2.0].into(),
-                color,
-                uv: [0.0, 0.0].into(),
-            },
-        ]);
-        self.index
-            .extend([self.base_index, self.base_index + 2, self.base_index + 1]);
-        self.base_index += 3;
+        let mut buffers = &mut self.buffers;
+        let mut bb = lyon::tessellation::BuffersBuilder::new(&mut buffers, VertexBuilder { color });
+        match mode {
+            DrawMode::Fill { tolerance } => {
+                let mut tessellator = lyon::tessellation::FillTessellator::new();
+                tessellator
+                    .tessellate_polygon(
+                        lyon::path::Polygon {
+                            points: &[
+                                lyon::math::point(position.x + size.x / 2.0, position.y),
+                                lyon::math::point(position.x, position.y + size.y),
+                                lyon::math::point(position.x + size.x, position.y + size.y),
+                            ],
+                            closed: true,
+                        },
+                        &lyon::tessellation::FillOptions::default().with_tolerance(tolerance),
+                        &mut bb,
+                    )
+                    .unwrap();
+            }
+            DrawMode::Stroke { width, tolerance } => {
+                let mut tessellator = lyon::tessellation::StrokeTessellator::new();
+                tessellator
+                    .tessellate_polygon(
+                        lyon::path::Polygon {
+                            points: &[
+                                lyon::math::point(
+                                    position.x + size.x / 2.0,
+                                    position.y + (width.powi(2) + width.powi(2)).sqrt(),
+                                ),
+                                lyon::math::point(
+                                    position.x + width / 2.0,
+                                    position.y + size.y - width / 2.0,
+                                ),
+                                lyon::math::point(
+                                    position.x + size.x - width / 2.0,
+                                    position.y + size.y - width / 2.0,
+                                ),
+                            ],
+                            closed: true,
+                        },
+                        &lyon::tessellation::StrokeOptions::default()
+                            .with_tolerance(tolerance)
+                            .with_line_width(width),
+                        &mut bb,
+                    )
+                    .unwrap();
+            }
+        }
         self
     }
 
@@ -58,47 +141,95 @@ impl MeshBuilder {
         position: impl Into<mint::Point2<f32>>,
         size: impl Into<mint::Vector2<f32>>,
         color: impl Into<rgb::RGB<f32>>,
+        mode: DrawMode,
     ) -> &mut Self {
         let position = position.into();
         let size = size.into();
         let color = color.into();
-        self.vertex.extend([
-            Vertex {
-                position: [position.x, position.y].into(),
-                color,
-                uv: [0.0, 0.0].into(),
-            },
-            Vertex {
-                position: [position.x + size.x, position.y].into(),
-                color,
-                uv: [0.0, 0.0].into(),
-            },
-            Vertex {
-                position: [position.x, position.y + size.y].into(),
-                color,
-                uv: [0.0, 0.0].into(),
-            },
-            Vertex {
-                position: [position.x + size.x, position.y + size.y].into(),
-                color,
-                uv: [0.0, 0.0].into(),
-            },
-        ]);
-        self.index.extend([
-            self.base_index,
-            self.base_index + 1,
-            self.base_index + 2,
-            self.base_index + 1,
-            self.base_index + 3,
-            self.base_index + 2,
-        ]);
-        self.base_index += 4;
+        let mut buffers = &mut self.buffers;
+        let mut bb = lyon::tessellation::BuffersBuilder::new(&mut buffers, VertexBuilder { color });
+        match mode {
+            DrawMode::Fill { tolerance } => {
+                let mut tessellator = lyon::tessellation::FillTessellator::new();
+                tessellator
+                    .tessellate_rectangle(
+                        &lyon::math::rect(position.x, position.y, size.x, size.y),
+                        &lyon::tessellation::FillOptions::default().with_tolerance(tolerance),
+                        &mut bb,
+                    )
+                    .unwrap();
+            }
+            DrawMode::Stroke { width, tolerance } => {
+                let mut tessellator = lyon::tessellation::StrokeTessellator::new();
+                tessellator
+                    .tessellate_rectangle(
+                        &lyon::math::rect(
+                            position.x + width / 2.0,
+                            position.y + width / 2.0,
+                            size.x - width,
+                            size.y - width,
+                        ),
+                        &lyon::tessellation::StrokeOptions::default()
+                            .with_tolerance(tolerance)
+                            .with_line_width(width),
+                        &mut bb,
+                    )
+                    .unwrap();
+            }
+        }
+        self
+    }
+
+    /// Adds a circle/ellipse to the builder.
+    pub fn circle(
+        &mut self,
+        position: impl Into<mint::Point2<f32>>,
+        size: impl Into<mint::Vector2<f32>>,
+        color: impl Into<rgb::RGB<f32>>,
+        mode: DrawMode,
+    ) -> &mut Self {
+        let position = position.into();
+        let size = size.into();
+        let color = color.into();
+        let mut buffers = &mut self.buffers;
+        let mut bb = lyon::tessellation::BuffersBuilder::new(&mut buffers, VertexBuilder { color });
+        match mode {
+            DrawMode::Fill { tolerance } => {
+                let mut tessellator = lyon::tessellation::FillTessellator::new();
+                tessellator
+                    .tessellate_ellipse(
+                        lyon::math::point(position.x + size.x / 2.0, position.y + size.y / 2.0),
+                        lyon::math::vector(size.x, size.y),
+                        lyon::math::Angle::default(),
+                        lyon::path::Winding::Positive,
+                        &lyon::tessellation::FillOptions::default().with_tolerance(tolerance),
+                        &mut bb,
+                    )
+                    .unwrap();
+            }
+            DrawMode::Stroke { width, tolerance } => {
+                dbg!(tolerance);
+                let mut tessellator = lyon::tessellation::StrokeTessellator::new();
+                tessellator
+                    .tessellate_ellipse(
+                        lyon::math::point(position.x + size.x / 2.0, position.y + size.y / 2.0),
+                        lyon::math::vector(size.x / 2.0 - width / 2.0, size.y / 2.0 - width / 2.0),
+                        lyon::math::Angle::default(),
+                        lyon::path::Winding::Positive,
+                        &lyon::tessellation::StrokeOptions::default()
+                            .with_tolerance(tolerance)
+                            .with_line_width(width),
+                        &mut bb,
+                    )
+                    .unwrap();
+            }
+        }
         self
     }
 
     /// Builds the mesh object.
     pub fn build(&self, ctx: &GraphicsContext) -> Mesh {
-        Mesh::new(ctx, &self.vertex, &self.index)
+        Mesh::new(ctx, &self.buffers.vertices, &self.buffers.indices)
     }
 }
 
