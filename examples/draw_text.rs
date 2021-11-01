@@ -1,4 +1,4 @@
-use oblivion::{GraphicsContext, Render, Text, Transform};
+use oblivion::{GraphicsContext, Render, Text, TextFragment, Transform};
 #[path = "common.rs"]
 mod common;
 
@@ -13,7 +13,11 @@ impl common::Example for DrawTextExample {
     fn setup(ctx: &mut GraphicsContext) -> Self {
         let mut more_text = Text::new(ctx);
         more_text.add_text(["Hello ", "World\n"]);
-        more_text.add_text(["Foobar"]);
+        more_text.add_text([TextFragment {
+            text: "Foobar".to_owned(),
+            font: None,
+            color: [1.0, 0.5, 0.25, 1.0].into(),
+        }]);
         more_text.flush(ctx);
         DrawTextExample {
             text: Text::new(ctx),

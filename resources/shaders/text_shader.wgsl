@@ -57,6 +57,6 @@ var s_diffuse: sampler;
 [[stage(fragment)]]
 fn main(in: VertexOutput) -> [[location(0)]] vec4<f32> {
     // There's not A8Unorm texture format so we have to make it ourselves
-    return in.color * vec4<f32>(0.0, 0.0, 0.0, textureSample(t_diffuse, s_diffuse, in.uv).r);
+    return in.color * vec4<f32>(1.0, 1.0, 1.0, textureSample(t_diffuse, s_diffuse, in.uv).r);
     //return vec4<f32>(in.color, 1.0) * textureSample(t_diffuse, s_diffuse, in.uv);
 }
