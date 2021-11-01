@@ -278,27 +278,6 @@ impl Text {
                         })
                         .flatten()
                         .collect::<Vec<_>>();
-
-                    /*let max_coord = vertices_list.iter().flatten().map(|v| v.position).fold(
-                        mint::Point2::<f32> {
-                            x: -1000.0,
-                            y: -1000.0,
-                        },
-                        |acc, v| mint::Point2 {
-                            x: acc.x.max(v.x),
-                            y: acc.y.max(v.y),
-                        },
-                    );
-                    let min_coord = vertices_list.iter().flatten().map(|v| v.position).fold(
-                        mint::Point2::<f32> {
-                            x: 1000.0,
-                            y: 1000.0,
-                        },
-                        |acc, v| mint::Point2 {
-                            x: acc.x.min(v.x),
-                            y: acc.y.min(v.y),
-                        },
-                    );*/
                     let vertices = vertices_list
                         .into_iter()
                         .map(|vertex_list| {
