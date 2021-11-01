@@ -23,6 +23,7 @@ impl common::Example for DrawMeshExample {
                     ],
                     oblivion::DrawMode::fill(),
                 )
+                .unwrap()
                 .quad(
                     [rng.gen_range(-1.0..=1.0), rng.gen_range(-1.0..=1.0)],
                     [rng.gen_range(0.25..=1.0), rng.gen_range(0.25..=1.0)],
@@ -32,7 +33,8 @@ impl common::Example for DrawMeshExample {
                         rng.gen_range(0.0..=1.0),
                     ],
                     oblivion::DrawMode::fill(),
-                );
+                )
+                .unwrap();
         }
         let mesh = builder.build(&ctx);
         DrawMeshExample { mesh }

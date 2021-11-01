@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use wgpu::util::DeviceExt;
 
-use crate::{GraphicsContext, MeshBuffer, PipelineData, Render, Transform, Vertex};
+use crate::{GraphicsContext, MeshBuffer, OblivionResult, PipelineData, Render, Transform, Vertex};
 
 #[derive(Copy, Clone, PartialEq, Debug)]
 struct VertexBuilder {
@@ -79,7 +79,7 @@ impl MeshBuilder {
         size: impl Into<mint::Vector2<f32>>,
         color: impl Into<rgb::RGB<f32>>,
         mode: DrawMode,
-    ) -> &mut Self {
+    ) -> OblivionResult<&mut Self> {
         let position = position.into();
         let size = size.into();
         let color = color.into();
@@ -132,7 +132,7 @@ impl MeshBuilder {
                     .unwrap();
             }
         }
-        self
+        Ok(self)
     }
 
     /// Adds a quadrilateral to the builder.
@@ -142,7 +142,7 @@ impl MeshBuilder {
         size: impl Into<mint::Vector2<f32>>,
         color: impl Into<rgb::RGB<f32>>,
         mode: DrawMode,
-    ) -> &mut Self {
+    ) -> OblivionResult<&mut Self> {
         let position = position.into();
         let size = size.into();
         let color = color.into();
@@ -177,7 +177,7 @@ impl MeshBuilder {
                     .unwrap();
             }
         }
-        self
+        Ok(self)
     }
 
     /// Adds a circle/ellipse to the builder.
@@ -187,7 +187,7 @@ impl MeshBuilder {
         size: impl Into<mint::Vector2<f32>>,
         color: impl Into<rgb::RGB<f32>>,
         mode: DrawMode,
-    ) -> &mut Self {
+    ) -> OblivionResult<&mut Self> {
         let position = position.into();
         let size = size.into();
         let color = color.into();
@@ -224,7 +224,7 @@ impl MeshBuilder {
                     .unwrap();
             }
         }
-        self
+        Ok(self)
     }
 
     /// Builds the mesh object.

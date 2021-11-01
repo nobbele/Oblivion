@@ -13,7 +13,6 @@ impl common::Example for DrawTextExample {
         let mut more_text = Text::new(ctx);
         more_text.add_text(["Hello ", "World\n"]);
         more_text.add_text(["Foobar"]);
-        more_text.add_text(["FoobarFoobarFoobarFoobar"]);
         more_text.flush(ctx);
         DrawTextExample {
             text: Text::new(ctx),
@@ -34,6 +33,7 @@ impl common::Example for DrawTextExample {
         self.more_text.draw(
             render,
             Transform {
+                offset: [0.0, 0.0].into(),
                 position: [0.0, 0.0].into(),
                 scale: [0.5, 0.5].into(),
                 ..Default::default()

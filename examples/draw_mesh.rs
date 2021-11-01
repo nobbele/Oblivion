@@ -15,30 +15,35 @@ impl common::Example for DrawMeshExample {
                 [0.0, 0.0, 1.0],
                 oblivion::DrawMode::fill(),
             )
+            .unwrap()
             .quad(
                 [1.0 / 3.0, 1.0 / 3.0],
                 [1.0 / 3.0, 1.0 / 3.0],
                 [0.0, 1.0, 0.0],
                 oblivion::DrawMode::stroke(0.02),
             )
+            .unwrap()
             .quad(
                 [2.0 / 3.0, 2.0 / 3.0],
                 [1.0 / 3.0, 1.0 / 3.0],
                 [1.0, 0.0, 0.0],
                 oblivion::DrawMode::fill(),
             )
+            .unwrap()
             .tri(
                 [0.0, 2.0 / 3.0],
                 [1.0 / 3.0, 1.0 / 3.0],
                 [1.0, 0.0, 0.0],
                 oblivion::DrawMode::stroke(0.02),
             )
+            .unwrap()
             .circle(
                 [2.0 / 3.0, 0.0],
                 [1.0 / 3.0, 1.0 / 3.0],
                 [1.0, 0.0, 0.0],
                 oblivion::DrawMode::stroke(0.02),
             )
+            .unwrap()
             .build(&ctx);
         DrawMeshExample { mesh }
     }

@@ -1,6 +1,8 @@
 use std::{num::NonZeroU32, rc::Rc};
 
-use glyph_brush::{ab_glyph::FontArc, FontId, GlyphBrush, GlyphBrushBuilder, Section};
+use glyph_brush::{
+    ab_glyph::FontArc, FontId, GlyphBrush, GlyphBrushBuilder, GlyphCruncher, Section,
+};
 
 use crate::{GraphicsContext, MeshBuffer, OblivionError, PipelineData, Render, Transform, Vertex};
 
@@ -99,7 +101,15 @@ impl Text {
                 })
                 .collect::<Vec<_>>(),
         );
-        self.glyph_brush.queue(&section);
+        let max_point = self
+            .glyph_brush
+            .glyph_bounds(&section)
+            .map(|rect| mint::Point2 {
+                x: rect.width(),
+                y: rect.height(),
+            })
+            .unwrap_or(mint::Point2 { x: 0.0, y: 0.0 });
+        self.glyph_brush.queue(section);
 
         match self.glyph_brush.process_queued(
             |rect, tex_data| {
@@ -233,7 +243,8 @@ impl Text {
                         .into_iter()
                         .map(|vertex_list| {
                             vertex_list.map(|mut v| {
-                                v.position = [v.position.x / 900.0, v.position.y / 900.0].into();
+                                v.position =
+                                    [v.position.x / max_point.x, v.position.y / max_point.x].into();
                                 v
                             })
                         })

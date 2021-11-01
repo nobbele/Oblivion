@@ -16,4 +16,6 @@ pub enum OblivionError {
     InvalidSurface,
     #[error("Error occured while retrieving render frame.")]
     RetrieveFrameError(#[from] wgpu::SurfaceError),
+    //#[error("Failed to tesselate shape.")]
+    //TessellationError(#[from] lyon::tessellation::TessellationError),
 }
