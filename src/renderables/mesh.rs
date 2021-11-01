@@ -288,11 +288,37 @@ impl Mesh {
             label: Some("Oblivion_MeshTextureBindGroup"),
         });
 
+        let min_point = vertex.iter().fold(
+            mint::Point2 {
+                x: f32::MAX,
+                y: f32::MAX,
+            },
+            |acc, v| mint::Point2 {
+                x: acc.x.min(v.position.x),
+                y: acc.y.min(v.position.y),
+            },
+        );
+        let max_point = vertex.iter().fold(
+            mint::Point2 {
+                x: f32::MIN,
+                y: f32::MIN,
+            },
+            |acc, v| mint::Point2 {
+                x: acc.x.max(v.position.x),
+                y: acc.y.max(v.position.y),
+            },
+        );
+        let object_dimensions = mint::Vector2 {
+            x: max_point.x - min_point.x,
+            y: max_point.y - min_point.y,
+        };
+
         Mesh {
             data: PipelineData {
                 mesh_buffer: Rc::new(mesh_buffer),
                 bind_group: Rc::new(bind_group),
                 instance_buffer: Rc::clone(&ctx.identity_instance_buffer),
+                object_dimensions,
             },
         }
     }

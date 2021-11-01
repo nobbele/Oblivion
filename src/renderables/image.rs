@@ -78,6 +78,7 @@ impl Image {
                 mesh_buffer: Rc::clone(&ctx.quad_mesh_buffer),
                 bind_group: Rc::new(bind_group),
                 instance_buffer: Rc::clone(&ctx.identity_instance_buffer),
+                object_dimensions: mint::Vector2 { x: 1.0, y: 1.0 },
             },
         }
     }

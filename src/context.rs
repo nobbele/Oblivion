@@ -4,6 +4,7 @@ use wgpu::util::DeviceExt;
 
 use crate::{
     helpers::{create_pipeline, get_adapter_surface, get_device_queue},
+    internal::PipelineData,
     DrawData, MeshBuffer, OblivionError, OblivionResult, Render, RenderData, RenderGroup, TargetId,
     Transform, QUAD_INDICES, QUAD_VERTICES,
 };
@@ -138,15 +139,18 @@ impl GraphicsContext {
 
         let uniform_alignment = device.limits().min_uniform_buffer_offset_alignment;
 
-        let identity_instance_buffer = Rc::new(device.create_buffer_init(
-            &wgpu::util::BufferInitDescriptor {
+        let identity_instance_buffer = Rc::new(
+            device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
                 label: Some("Oblivion_IdentityInstanceBuffer"),
                 usage: wgpu::BufferUsages::VERTEX,
-                contents: bytemuck::cast_slice(&[
-                    Transform::default().as_matrix().to_cols_array_2d(),
-                ]),
-            },
-        ));
+                contents: bytemuck::cast_slice(&[Transform {
+                    offset: [0.0, 0.0].into(),
+                    ..Default::default()
+                }
+                .as_matrix(mint::Vector2 { x: 1.0, y: 1.0 })
+                .to_cols_array_2d()]),
+            }),
+        );
 
         fn ortho(
             left: f32,
@@ -249,12 +253,16 @@ impl GraphicsContext {
                 idx,
                 RenderData {
                     instance_data: DrawData { transform, .. },
+                    pipeline_data:
+                        PipelineData {
+                            object_dimensions, ..
+                        },
                     ..
                 },
             ) in group.queue.iter().enumerate()
             {
                 let start = (idx + uniform_start_idx) * uniform_alignment as usize;
-                let mat = self.projection * transform.as_matrix();
+                let mat = self.projection * transform.as_matrix(*object_dimensions);
                 self.uniform_buffer_data[start..start + UNIFORM_SIZE]
                     .copy_from_slice(bytemuck::cast_slice(&mat.to_cols_array_2d()))
             }

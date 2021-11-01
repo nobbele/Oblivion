@@ -77,6 +77,7 @@ impl ImageBatch {
                 mesh_buffer: Rc::clone(&ctx.quad_mesh_buffer),
                 bind_group: Rc::new(bind_group),
                 instance_buffer: Rc::clone(&instance_buffer),
+                object_dimensions: mint::Vector2 { x: 1.0, y: 1.0 },
             },
             instance_buffer_capacity: 0,
             instance_buffer_count: 0,
@@ -115,6 +116,7 @@ impl ImageBatch {
                 instance_buffer: Rc::clone(&instance_buffer),
                 mesh_buffer: Rc::clone(&self.data.mesh_buffer),
                 bind_group: Rc::clone(&self.data.bind_group),
+                object_dimensions: mint::Vector2 { x: 1.0, y: 1.0 },
             };
             self.instance_buffer_capacity = new_capacity;
         }
@@ -125,7 +127,9 @@ impl ImageBatch {
             .zip(transform_data.chunks_exact_mut(INSTANCE_SIZE))
         {
             transform_data_slice.copy_from_slice(bytemuck::cast_slice(
-                &transform.as_matrix().to_cols_array_2d(),
+                &transform
+                    .as_matrix(mint::Vector2 { x: 1.0, y: 1.0 })
+                    .to_cols_array_2d(),
             ));
         }
         ctx.queue.write_buffer(

@@ -68,6 +68,7 @@ impl Text {
                 mesh_buffer: Rc::new(mesh_buffer),
                 bind_group: Rc::new(bind_group),
                 instance_buffer: Rc::clone(&ctx.identity_instance_buffer),
+                object_dimensions: mint::Vector2 { x: 0.0, y: 0.0 },
             },
             glyph_brush,
             texture,
@@ -110,14 +111,6 @@ impl Text {
                 })
                 .collect::<Vec<_>>(),
         );
-        /*let bounds = self
-        .glyph_brush
-        .glyph_bounds(&section)
-        .map(|rect| mint::Point2 {
-            x: rect.width(),
-            y: rect.height(),
-        })
-        .unwrap_or(mint::Point2 { x: 0.0, y: 0.0 });*/
         let bounds = self
             .glyph_brush
             .glyph_bounds(&section)
@@ -137,6 +130,7 @@ impl Text {
         let pos = [bounds.0.x / 1280.0, bounds.0.y / 720.0].into();
         let size = [bounds.1.x / 1280.0, bounds.1.y / 720.0].into();
         self.bounds = (pos, size);
+        self.pipeline_data.object_dimensions = size;
         self.glyph_brush.queue(section);
 
         match self.glyph_brush.process_queued(

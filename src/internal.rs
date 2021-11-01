@@ -70,6 +70,7 @@ pub(crate) struct PipelineData {
     pub mesh_buffer: Rc<MeshBuffer>,
     pub bind_group: Rc<wgpu::BindGroup>,
     pub instance_buffer: Rc<wgpu::Buffer>,
+    pub object_dimensions: mint::Vector2<f32>,
 }
 
 /// This is unique between .draw() calls

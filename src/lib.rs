@@ -184,12 +184,12 @@ pub struct Transform {
 }
 
 impl Transform {
-    pub(crate) fn as_matrix(&self) -> glam::Mat4 {
+    pub(crate) fn as_matrix(&self, obj_dim: mint::Vector2<f32>) -> glam::Mat4 {
         let translate =
             glam::Mat4::from_translation(glam::vec3(self.position.x, self.position.y, 0.0));
         let offset_inv = glam::Mat4::from_translation(glam::vec3(
-            -self.offset.x + 0.25,
-            -self.offset.y + 0.25,
+            -self.offset.x * obj_dim.x,
+            -self.offset.y * obj_dim.y,
             0.0,
         ));
         let rotation = glam::Mat4::from_rotation_z(self.rotation.rad());
@@ -204,6 +204,7 @@ impl Default for Transform {
             position: [0.0, 0.0].into(),
             scale: [1.0, 1.0].into(),
             rotation: Angle::from_radians(0.0),
+            // TODO maybe this shouldn't default to 0.5..
             offset: [0.5, 0.5].into(),
         }
     }
