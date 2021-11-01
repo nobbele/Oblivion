@@ -112,6 +112,10 @@ impl Text {
     }
 
     pub fn flush(&mut self, ctx: &mut GraphicsContext) {
+        if !self.dirty {
+            return;
+        }
+
         let section = Section::default().with_text(
             self.fragments
                 .iter()
