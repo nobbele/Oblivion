@@ -7,6 +7,7 @@ use crate::{
     Vertex,
 };
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Font {
     id: FontId,
 }
@@ -25,6 +26,7 @@ impl Font {
     }
 }
 
+#[derive(Debug, Clone, PartialEq)]
 pub struct TextFragment {
     text: String,
     font: Option<Font>,
