@@ -1,14 +1,33 @@
 use std::{num::NonZeroU32, rc::Rc};
 
-use glyph_brush::{
-    ab_glyph::FontArc, FontId, GlyphBrush, GlyphBrushBuilder, GlyphCruncher, Section,
+use glyph_brush::{ab_glyph::FontArc, FontId, GlyphBrush, GlyphCruncher, Section};
+
+use crate::{
+    GraphicsContext, MeshBuffer, OblivionError, OblivionResult, PipelineData, Render, Transform,
+    Vertex,
 };
 
-use crate::{GraphicsContext, MeshBuffer, OblivionError, PipelineData, Render, Transform, Vertex};
+pub struct Font {
+    id: FontId,
+}
+
+impl Font {
+    pub fn new(ctx: &mut GraphicsContext, font_data: Vec<u8>) -> OblivionResult<Self> {
+        Self::new_raw(&mut ctx.glyph_brush, font_data)
+    }
+
+    pub(crate) fn new_raw(
+        gb: &mut GlyphBrush<[Vertex; 4]>,
+        font_data: Vec<u8>,
+    ) -> OblivionResult<Self> {
+        let id = gb.add_font(FontArc::try_from_vec(font_data).map_err(OblivionError::LoadFont)?);
+        Ok(Font { id })
+    }
+}
 
 pub struct TextFragment {
     text: String,
-    font: Option<FontId>,
+    font: Option<Font>,
 }
 
 impl From<&str> for TextFragment {
@@ -32,13 +51,11 @@ impl From<String> for TextFragment {
 /// Renderable text object.
 pub struct Text {
     pipeline_data: PipelineData,
-    glyph_brush: GlyphBrush<[Vertex; 4], glyph_brush::Extra>,
     texture: wgpu::Texture,
     upload_buffer: wgpu::Buffer,
     upload_buffer_size: wgpu::BufferAddress,
     fragments: Vec<TextFragment>,
     dirty: bool,
-    default_font_id: FontId,
     bounds: (mint::Point2<f32>, mint::Vector2<f32>),
 }
 
@@ -46,11 +63,7 @@ impl Text {
     /// Creates a new text object.
     pub fn new(ctx: &mut GraphicsContext) -> Self {
         let mesh_buffer = MeshBuffer::from_slices(&ctx.device, &[], &[]);
-        // TODO remove default font
-        let default_font =
-            FontArc::try_from_slice(include_bytes!("../../resources/fonts/DejaVuSans.ttf"))
-                .map_err(OblivionError::LoadFont)
-                .unwrap();
+
         let upload_buffer_size = wgpu::COPY_BYTES_PER_ROW_ALIGNMENT as wgpu::BufferAddress * 100;
         let upload_buffer = ctx.device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Oblivion_TextUploadBuffer"),
@@ -58,9 +71,7 @@ impl Text {
             usage: wgpu::BufferUsages::COPY_SRC | wgpu::BufferUsages::MAP_WRITE,
             mapped_at_creation: false,
         });
-        let mut glyph_brush = GlyphBrushBuilder::using_fonts(vec![]).build();
-        let default_font_id = glyph_brush.add_font(default_font);
-        let texture_dimensions = glyph_brush.texture_dimensions();
+        let texture_dimensions = ctx.glyph_brush.texture_dimensions();
         let texture_dimensions = [texture_dimensions.0, texture_dimensions.1];
         let (texture, bind_group) = create_texture(ctx, texture_dimensions);
         Text {
@@ -70,13 +81,11 @@ impl Text {
                 instance_buffer: Rc::clone(&ctx.identity_instance_buffer),
                 object_dimensions: mint::Vector2 { x: 0.0, y: 0.0 },
             },
-            glyph_brush,
             texture,
             upload_buffer,
             upload_buffer_size,
             fragments: Vec::new(),
             dirty: false,
-            default_font_id,
             bounds: (
                 mint::Point2 { x: 0.0, y: 0.0 },
                 mint::Vector2 { x: 0.0, y: 0.0 },
@@ -107,11 +116,11 @@ impl Text {
                 .map(|frag| {
                     glyph_brush::Text::new(&frag.text)
                         .with_scale(72.0)
-                        .with_font_id(frag.font.unwrap_or(self.default_font_id))
+                        .with_font_id(frag.font.as_ref().unwrap_or(&ctx.default_font).id)
                 })
                 .collect::<Vec<_>>(),
         );
-        let bounds = self
+        let bounds = ctx
             .glyph_brush
             .glyph_bounds(&section)
             .map(|rect| {
@@ -131,9 +140,9 @@ impl Text {
         let size = [bounds.1.x / 1280.0, bounds.1.y / 720.0].into();
         self.bounds = (pos, size);
         self.pipeline_data.object_dimensions = size;
-        self.glyph_brush.queue(section);
+        ctx.glyph_brush.queue(section);
 
-        match self.glyph_brush.process_queued(
+        match ctx.glyph_brush.process_queued(
             |rect, tex_data| {
                 let [width, height] = [
                     rect.width() as wgpu::BufferAddress,

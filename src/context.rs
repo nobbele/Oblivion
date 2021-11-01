@@ -1,12 +1,13 @@
 use std::{num::NonZeroU64, rc::Rc};
 
+use glyph_brush::{GlyphBrush, GlyphBrushBuilder};
 use wgpu::util::DeviceExt;
 
 use crate::{
     helpers::{create_pipeline, get_adapter_surface, get_device_queue},
     internal::PipelineData,
-    DrawData, MeshBuffer, OblivionError, OblivionResult, Render, RenderData, RenderGroup, TargetId,
-    Transform, QUAD_INDICES, QUAD_VERTICES,
+    DrawData, Font, MeshBuffer, OblivionError, OblivionResult, Render, RenderData, RenderGroup,
+    TargetId, Transform, Vertex, QUAD_INDICES, QUAD_VERTICES,
 };
 
 type UniformType = [[f32; 4]; 4];
@@ -23,6 +24,9 @@ pub struct GraphicsContext {
 
     pub(crate) canvas_store: Vec<wgpu::TextureView>,
     pub(crate) pipeline_store: Vec<wgpu::RenderPipeline>,
+    pub(crate) default_font: Font,
+    pub(crate) glyph_brush: GlyphBrush<[Vertex; 4]>,
+
     pub(crate) texture_bind_group_layout: wgpu::BindGroupLayout,
     pub(crate) mvp_bind_group_layout: wgpu::BindGroupLayout,
 
@@ -152,6 +156,7 @@ impl GraphicsContext {
             }),
         );
 
+        // ?? Stolen from ggez
         fn ortho(
             left: f32,
             right: f32,
@@ -190,27 +195,37 @@ impl GraphicsContext {
         }
         let projection = glam::Mat4::from_cols_array_2d(&ortho(0.0, 1.0, 0.0, 1.0, -1.0, 1.0));
 
+        let mut glyph_brush = GlyphBrushBuilder::using_fonts(vec![]).build();
+        let default_font = Font::new_raw(
+            &mut glyph_brush,
+            include_bytes!("../resources/fonts/DejaVuSans.ttf").to_vec(),
+        )?;
+
         Ok(GraphicsContext {
-            surface,
             device,
             queue,
+            surface,
+            preferred_format,
             config,
             canvas_store: Vec::new(),
             pipeline_store,
-            quad_mesh_buffer: Rc::new(quad_mesh_buffer),
+
             texture_bind_group_layout,
             mvp_bind_group_layout,
+
+            glyph_brush,
+            default_font,
+
+            quad_mesh_buffer: Rc::new(quad_mesh_buffer),
 
             identity_instance_buffer,
 
             projection,
-
-            uniform_buffer,
+            uniform_alignment,
             uniform_buffer_data: Vec::new(),
+            uniform_buffer,
             uniform_buffer_count: 0,
             uniform_bind_groups: Vec::new(),
-            uniform_alignment,
-            preferred_format,
         })
     }
 
