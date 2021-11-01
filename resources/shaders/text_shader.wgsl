@@ -2,7 +2,7 @@
 
 struct VertexInput {
     [[location(0)]] position: vec2<f32>;
-    [[location(1)]] color: vec3<f32>;
+    [[location(1)]] color: vec4<f32>;
     [[location(2)]] uv: vec2<f32>;
 };
 
@@ -22,7 +22,7 @@ var<uniform> uniform: Uniform;
 
 struct VertexOutput {
     [[builtin(position)]] clip_position: vec4<f32>;
-    [[location(0)]] color: vec3<f32>;
+    [[location(0)]] color: vec4<f32>;
     [[location(1)]] uv: vec2<f32>;
 };
 
@@ -57,6 +57,6 @@ var s_diffuse: sampler;
 [[stage(fragment)]]
 fn main(in: VertexOutput) -> [[location(0)]] vec4<f32> {
     // There's not A8Unorm texture format so we have to make it ourselves
-    return vec4<f32>(in.color, 1.0) * vec4<f32>(0.0, 0.0, 0.0, textureSample(t_diffuse, s_diffuse, in.uv).r);
+    return in.color * vec4<f32>(0.0, 0.0, 0.0, textureSample(t_diffuse, s_diffuse, in.uv).r);
     //return vec4<f32>(in.color, 1.0) * textureSample(t_diffuse, s_diffuse, in.uv);
 }

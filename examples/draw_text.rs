@@ -6,6 +6,7 @@ struct DrawTextExample {
     text: Text,
     more_text: Text,
     count: u32,
+    mesh: oblivion::Mesh,
 }
 
 impl common::Example for DrawTextExample {
@@ -18,6 +19,7 @@ impl common::Example for DrawTextExample {
             text: Text::new(ctx),
             more_text,
             count: 0,
+            mesh: oblivion::Mesh::new(ctx, &[], &[]),
         }
     }
 
@@ -26,6 +28,23 @@ impl common::Example for DrawTextExample {
         self.text.clear();
         self.text.add_text([format!("Frame Count: {}", self.count)]);
         self.text.flush(ctx);
+
+        let text_dim = self.text.bounds();
+        let mesh = oblivion::MeshBuilder::new()
+            .quad(
+                text_dim.0,
+                text_dim.1,
+                rgb::RGBA {
+                    r: 1.0,
+                    g: 0.0,
+                    b: 1.0,
+                    a: 0.5,
+                },
+                oblivion::DrawMode::fill(),
+            )
+            .unwrap()
+            .build(ctx);
+        self.mesh = mesh;
     }
 
     fn draw(&self, render: &mut Render) {
@@ -40,6 +59,14 @@ impl common::Example for DrawTextExample {
             },
         );
         self.text.draw(
+            render,
+            Transform {
+                position: [0.5, 0.5].into(),
+                scale: [0.5, 0.5].into(),
+                ..Default::default()
+            },
+        );
+        self.mesh.draw(
             render,
             Transform {
                 position: [0.5, 0.5].into(),

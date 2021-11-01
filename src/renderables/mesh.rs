@@ -6,7 +6,7 @@ use crate::{GraphicsContext, MeshBuffer, OblivionResult, PipelineData, Render, T
 
 #[derive(Copy, Clone, PartialEq, Debug)]
 struct VertexBuilder {
-    color: rgb::RGB<f32>,
+    color: rgb::RGBA<f32>,
 }
 
 impl lyon::tessellation::StrokeVertexConstructor<Vertex> for VertexBuilder {
@@ -77,7 +77,7 @@ impl MeshBuilder {
         &mut self,
         position: impl Into<mint::Point2<f32>>,
         size: impl Into<mint::Vector2<f32>>,
-        color: impl Into<rgb::RGB<f32>>,
+        color: impl Into<rgb::RGBA<f32>>,
         mode: DrawMode,
     ) -> OblivionResult<&mut Self> {
         let position = position.into();
@@ -140,7 +140,7 @@ impl MeshBuilder {
         &mut self,
         position: impl Into<mint::Point2<f32>>,
         size: impl Into<mint::Vector2<f32>>,
-        color: impl Into<rgb::RGB<f32>>,
+        color: impl Into<rgb::RGBA<f32>>,
         mode: DrawMode,
     ) -> OblivionResult<&mut Self> {
         let position = position.into();
@@ -185,7 +185,7 @@ impl MeshBuilder {
         &mut self,
         position: impl Into<mint::Point2<f32>>,
         size: impl Into<mint::Vector2<f32>>,
-        color: impl Into<rgb::RGB<f32>>,
+        color: impl Into<rgb::RGBA<f32>>,
         mode: DrawMode,
     ) -> OblivionResult<&mut Self> {
         let position = position.into();

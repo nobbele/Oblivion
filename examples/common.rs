@@ -1,5 +1,8 @@
 use oblivion::{GraphicsContext, Render};
-use winit::event::{Event, VirtualKeyCode, WindowEvent};
+use winit::{
+    dpi::LogicalSize,
+    event::{Event, VirtualKeyCode, WindowEvent},
+};
 
 pub trait Example {
     fn setup(ctx: &mut GraphicsContext) -> Self;
@@ -11,6 +14,7 @@ pub fn run<E: Example + 'static>() {
     let event_loop = winit::event_loop::EventLoop::new();
     let window = winit::window::WindowBuilder::new()
         .with_title("Oblivion")
+        .with_inner_size(LogicalSize::new(1280.0, 720.0))
         .build(&event_loop)
         .expect("Unable to create window");
 

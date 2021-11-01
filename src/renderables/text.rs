@@ -39,6 +39,7 @@ pub struct Text {
     fragments: Vec<TextFragment>,
     dirty: bool,
     default_font_id: FontId,
+    bounds: (mint::Point2<f32>, mint::Vector2<f32>),
 }
 
 impl Text {
@@ -75,6 +76,10 @@ impl Text {
             fragments: Vec::new(),
             dirty: false,
             default_font_id,
+            bounds: (
+                mint::Point2 { x: 0.0, y: 0.0 },
+                mint::Vector2 { x: 0.0, y: 0.0 },
+            ),
         }
     }
 
@@ -90,6 +95,10 @@ impl Text {
         self.fragments.clear();
     }
 
+    pub fn bounds(&self) -> (mint::Point2<f32>, mint::Vector2<f32>) {
+        self.bounds
+    }
+
     pub fn flush(&mut self, ctx: &mut GraphicsContext) {
         let section = Section::default().with_text(
             self.fragments
@@ -101,14 +110,33 @@ impl Text {
                 })
                 .collect::<Vec<_>>(),
         );
-        let max_point = self
+        /*let bounds = self
+        .glyph_brush
+        .glyph_bounds(&section)
+        .map(|rect| mint::Point2 {
+            x: rect.width(),
+            y: rect.height(),
+        })
+        .unwrap_or(mint::Point2 { x: 0.0, y: 0.0 });*/
+        let bounds = self
             .glyph_brush
             .glyph_bounds(&section)
-            .map(|rect| mint::Point2 {
-                x: rect.width(),
-                y: rect.height(),
+            .map(|rect| {
+                (
+                    mint::Point2 {
+                        x: rect.min.x,
+                        y: rect.min.y,
+                    },
+                    mint::Vector2 {
+                        x: rect.width(),
+                        y: rect.height(),
+                    },
+                )
             })
-            .unwrap_or(mint::Point2 { x: 0.0, y: 0.0 });
+            .unwrap();
+        let pos = [bounds.0.x / 1280.0, bounds.0.y / 720.0].into();
+        let size = [bounds.1.x / 1280.0, bounds.1.y / 720.0].into();
+        self.bounds = (pos, size);
         self.glyph_brush.queue(section);
 
         match self.glyph_brush.process_queued(
@@ -192,9 +220,7 @@ impl Text {
                 ctx.queue.submit(std::iter::once(command_encoder.finish()));
             },
             |vertex_data| {
-                let color = <[f32; 3]>::try_from(&vertex_data.extra.color[0..3])
-                    .unwrap()
-                    .into();
+                let color = vertex_data.extra.color.into();
                 let pixel_coords = glyph_rect_to_point_list(vertex_data.pixel_coords);
                 let uv_coords = glyph_rect_to_point_list(vertex_data.tex_coords);
                 [
@@ -239,12 +265,32 @@ impl Text {
                         })
                         .flatten()
                         .collect::<Vec<_>>();
+
+                    /*let max_coord = vertices_list.iter().flatten().map(|v| v.position).fold(
+                        mint::Point2::<f32> {
+                            x: -1000.0,
+                            y: -1000.0,
+                        },
+                        |acc, v| mint::Point2 {
+                            x: acc.x.max(v.x),
+                            y: acc.y.max(v.y),
+                        },
+                    );
+                    let min_coord = vertices_list.iter().flatten().map(|v| v.position).fold(
+                        mint::Point2::<f32> {
+                            x: 1000.0,
+                            y: 1000.0,
+                        },
+                        |acc, v| mint::Point2 {
+                            x: acc.x.min(v.x),
+                            y: acc.y.min(v.y),
+                        },
+                    );*/
                     let vertices = vertices_list
                         .into_iter()
                         .map(|vertex_list| {
                             vertex_list.map(|mut v| {
-                                v.position =
-                                    [v.position.x / max_point.x, v.position.y / max_point.x].into();
+                                v.position = [v.position.x / 1280.0, v.position.y / 720.0].into();
                                 v
                             })
                         })

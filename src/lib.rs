@@ -18,7 +18,7 @@ pub struct Vertex {
     /// Position.
     pub position: mint::Point2<f32>,
     /// Color.
-    pub color: rgb::RGB<f32>,
+    pub color: rgb::RGBA<f32>,
     /// Texture coordinate.
     pub uv: mint::Point2<f32>,
 }
@@ -40,10 +40,10 @@ impl Vertex {
                 wgpu::VertexAttribute {
                     offset: std::mem::size_of::<[f32; 2]>() as wgpu::BufferAddress,
                     shader_location: 1,
-                    format: wgpu::VertexFormat::Float32x3,
+                    format: wgpu::VertexFormat::Float32x4,
                 },
                 wgpu::VertexAttribute {
-                    offset: (std::mem::size_of::<[f32; 2]>() + std::mem::size_of::<[f32; 3]>())
+                    offset: (std::mem::size_of::<[f32; 2]>() + std::mem::size_of::<[f32; 4]>())
                         as wgpu::BufferAddress,
                     shader_location: 2,
                     format: wgpu::VertexFormat::Float32x2,
@@ -58,40 +58,44 @@ pub const QUAD_VERTICES: &[Vertex] = &[
     Vertex {
         position: mint::Point2 { x: 0.0, y: 0.0 },
         uv: mint::Point2 { x: 0.0, y: 0.0 },
-        color: rgb::RGB {
+        color: rgb::RGBA {
             r: 1.0,
             g: 1.0,
             b: 1.0,
+            a: 1.0,
         },
     },
     // Top Right
     Vertex {
         position: mint::Point2 { x: 1.0, y: 0.0 },
         uv: mint::Point2 { x: 1.0, y: 0.0 },
-        color: rgb::RGB {
+        color: rgb::RGBA {
             r: 1.0,
             g: 1.0,
             b: 1.0,
+            a: 1.0,
         },
     },
     // Bottom Left
     Vertex {
         position: mint::Point2 { x: 0.0, y: 1.0 },
         uv: mint::Point2 { x: 0.0, y: 1.0 },
-        color: rgb::RGB {
+        color: rgb::RGBA {
             r: 1.0,
             g: 1.0,
             b: 1.0,
+            a: 1.0,
         },
     },
     // Bottom Right
     Vertex {
         position: mint::Point2 { x: 1.0, y: 1.0 },
         uv: mint::Point2 { x: 1.0, y: 1.0 },
-        color: rgb::RGB {
+        color: rgb::RGBA {
             r: 1.0,
             g: 1.0,
             b: 1.0,
+            a: 1.0,
         },
     },
 ];

@@ -20,6 +20,7 @@ impl common::Example for DrawMeshExample {
                         rng.gen_range(0.0..=1.0),
                         rng.gen_range(0.0..=1.0),
                         rng.gen_range(0.0..=1.0),
+                        1.0,
                     ],
                     oblivion::DrawMode::fill(),
                 )
@@ -31,6 +32,7 @@ impl common::Example for DrawMeshExample {
                         rng.gen_range(0.0..=1.0),
                         rng.gen_range(0.0..=1.0),
                         rng.gen_range(0.0..=1.0),
+                        1.0,
                     ],
                     oblivion::DrawMode::fill(),
                 )
