@@ -28,8 +28,8 @@ impl Font {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct TextFragment {
-    text: String,
-    font: Option<Font>,
+    pub text: String,
+    pub font: Option<Font>,
 }
 
 impl From<&str> for TextFragment {
