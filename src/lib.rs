@@ -187,7 +187,6 @@ impl Transform {
     pub(crate) fn as_matrix(&self, obj_dim: mint::Vector2<f32>) -> glam::Mat4 {
         let translate =
             glam::Mat4::from_translation(glam::vec3(self.position.x, self.position.y, 0.0));
-        dbg!(obj_dim);
         let offset_inv = glam::Mat4::from_translation(glam::vec3(
             -self.offset.x * obj_dim.x,
             -self.offset.y * obj_dim.y,
