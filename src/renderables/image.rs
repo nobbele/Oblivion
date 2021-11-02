@@ -73,7 +73,6 @@ impl Image {
             ],
             label: Some("Oblivion_ImageBindGroup"),
         });
-        let render_dim = ctx.gfx_config.render_dimensions;
 
         Image {
             data: PipelineData {
@@ -82,7 +81,7 @@ impl Image {
                 instance_buffer: Rc::clone(&ctx.identity_instance_buffer),
                 object_dimensions: mint::Vector2 { x: 1.0, y: 1.0 },
             },
-            dimensions: render_dim,
+            dimensions: ctx.gfx_config.render_dimensions,
         }
     }
 
