@@ -156,44 +156,7 @@ impl GraphicsContext {
             }),
         );
 
-        // ?? Stolen from ggez
-        fn ortho(
-            left: f32,
-            right: f32,
-            top: f32,
-            bottom: f32,
-            far: f32,
-            near: f32,
-        ) -> [[f32; 4]; 4] {
-            let c0r0 = 2.0 / (right - left);
-            let c0r1 = 0.0;
-            let c0r2 = 0.0;
-            let c0r3 = 0.0;
-
-            let c1r0 = 0.0;
-            let c1r1 = 2.0 / (top - bottom);
-            let c1r2 = 0.0;
-            let c1r3 = 0.0;
-
-            let c2r0 = 0.0;
-            let c2r1 = 0.0;
-            let c2r2 = -2.0 / (far - near);
-            let c2r3 = 0.0;
-
-            let c3r0 = -(right + left) / (right - left);
-            let c3r1 = -(top + bottom) / (top - bottom);
-            let c3r2 = -(far + near) / (far - near);
-            let c3r3 = 1.0;
-
-            // our matrices are column-major, so here we are.
-            [
-                [c0r0, c0r1, c0r2, c0r3],
-                [c1r0, c1r1, c1r2, c1r3],
-                [c2r0, c2r1, c2r2, c2r3],
-                [c3r0, c3r1, c3r2, c3r3],
-            ]
-        }
-        let projection = glam::Mat4::from_cols_array_2d(&ortho(0.0, 1.0, 0.0, 1.0, -1.0, 1.0));
+        let projection = projection_matrix(1.0, 1.0);
 
         let mut glyph_brush = GlyphBrushBuilder::using_fonts(vec![]).build();
         let default_font = Font::new_raw(
@@ -227,6 +190,18 @@ impl GraphicsContext {
             uniform_buffer_count: 0,
             uniform_bind_groups: Vec::new(),
         })
+    }
+
+    pub fn set_projection(&mut self, dimensions: impl Into<mint::Vector2<f32>>) {
+        let dimensions: mint::Vector2<f32> = dimensions.into();
+        self.projection = projection_matrix(dimensions.x, dimensions.y);
+    }
+
+    pub fn surface_dimensions(&self) -> mint::Vector2<u32> {
+        mint::Vector2 {
+            x: self.config.width,
+            y: self.config.height,
+        }
     }
 
     fn render_group(
@@ -409,4 +384,38 @@ impl GraphicsContext {
         //println!("Render finished!");
         Ok(())
     }
+}
+
+fn projection_matrix(width: f32, height: f32) -> glam::Mat4 {
+    // ?? Stolen from ggez
+    fn ortho(left: f32, right: f32, top: f32, bottom: f32, far: f32, near: f32) -> [[f32; 4]; 4] {
+        let c0r0 = 2.0 / (right - left);
+        let c0r1 = 0.0;
+        let c0r2 = 0.0;
+        let c0r3 = 0.0;
+
+        let c1r0 = 0.0;
+        let c1r1 = 2.0 / (top - bottom);
+        let c1r2 = 0.0;
+        let c1r3 = 0.0;
+
+        let c2r0 = 0.0;
+        let c2r1 = 0.0;
+        let c2r2 = -2.0 / (far - near);
+        let c2r3 = 0.0;
+
+        let c3r0 = -(right + left) / (right - left);
+        let c3r1 = -(top + bottom) / (top - bottom);
+        let c3r2 = -(far + near) / (far - near);
+        let c3r3 = 1.0;
+
+        // our matrices are column-major, so here we are.
+        [
+            [c0r0, c0r1, c0r2, c0r3],
+            [c1r0, c1r1, c1r2, c1r3],
+            [c2r0, c2r1, c2r2, c2r3],
+            [c3r0, c3r1, c3r2, c3r3],
+        ]
+    }
+    glam::Mat4::from_cols_array_2d(&ortho(0.0, width, 0.0, height, -1.0, 1.0))
 }

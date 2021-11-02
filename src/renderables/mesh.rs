@@ -208,7 +208,6 @@ impl MeshBuilder {
                     .unwrap();
             }
             DrawMode::Stroke { width, tolerance } => {
-                dbg!(tolerance);
                 let mut tessellator = lyon::tessellation::StrokeTessellator::new();
                 tessellator
                     .tessellate_ellipse(
