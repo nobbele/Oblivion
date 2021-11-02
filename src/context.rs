@@ -13,6 +13,11 @@ use crate::{
 type UniformType = [[f32; 4]; 4];
 const UNIFORM_SIZE: usize = std::mem::size_of::<UniformType>();
 
+pub struct GraphicsConfig {
+    pub vsync: bool,
+    pub render_dimensions: mint::Vector2<f32>,
+}
+
 /// Context for graphics. This stores the graphics device, render queue, window surface, and more.
 pub struct GraphicsContext {
     pub(crate) device: wgpu::Device,
@@ -20,7 +25,8 @@ pub struct GraphicsContext {
     pub(crate) surface: wgpu::Surface,
     pub(crate) preferred_format: wgpu::TextureFormat,
     #[allow(dead_code)]
-    pub(crate) config: wgpu::SurfaceConfiguration,
+    pub(crate) surface_config: wgpu::SurfaceConfiguration,
+    pub(crate) gfx_config: GraphicsConfig,
 
     pub(crate) canvas_store: Vec<wgpu::TextureView>,
     pub(crate) pipeline_store: Vec<wgpu::RenderPipeline>,
@@ -49,7 +55,7 @@ impl GraphicsContext {
     pub fn new(
         window: &impl raw_window_handle::HasRawWindowHandle,
         dimensions: impl Into<mint::Vector2<u32>>,
-        vsync: bool,
+        gfx_config: GraphicsConfig,
     ) -> OblivionResult<Self> {
         let dimensions = dimensions.into();
         let (adapter, surface) = get_adapter_surface(window)?;
@@ -59,19 +65,19 @@ impl GraphicsContext {
             .get_preferred_format(&adapter)
             .ok_or(OblivionError::InvalidSurface)?;
 
-        let config = wgpu::SurfaceConfiguration {
+        let surface_config = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
             format: preferred_format,
             width: dimensions.x,
             height: dimensions.y,
-            present_mode: if vsync {
+            present_mode: if gfx_config.vsync {
                 wgpu::PresentMode::Fifo
             } else {
                 wgpu::PresentMode::Immediate
             },
         };
 
-        surface.configure(&device, &config);
+        surface.configure(&device, &surface_config);
 
         let texture_bind_group_layout =
             device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
@@ -116,7 +122,7 @@ impl GraphicsContext {
         let standard_pipeline = create_pipeline(
             "Standard",
             &device,
-            config.format,
+            surface_config.format,
             wgpu::ShaderSource::Wgsl(include_str!("../resources/shaders/shader.wgsl").into()),
             &texture_bind_group_layout,
             &mvp_bind_group_layout,
@@ -124,7 +130,7 @@ impl GraphicsContext {
         let text_pipeline = create_pipeline(
             "Text",
             &device,
-            config.format,
+            surface_config.format,
             wgpu::ShaderSource::Wgsl(include_str!("../resources/shaders/text_shader.wgsl").into()),
             &texture_bind_group_layout,
             &mvp_bind_group_layout,
@@ -156,7 +162,10 @@ impl GraphicsContext {
             }),
         );
 
-        let projection = projection_matrix(1.0, 1.0);
+        let projection = projection_matrix(
+            gfx_config.render_dimensions.x,
+            gfx_config.render_dimensions.y,
+        );
 
         let mut glyph_brush = GlyphBrushBuilder::using_fonts(vec![]).build();
         let default_font = Font::new_raw(
@@ -169,7 +178,8 @@ impl GraphicsContext {
             queue,
             surface,
             preferred_format,
-            config,
+            surface_config,
+            gfx_config,
             canvas_store: Vec::new(),
             pipeline_store,
 
@@ -195,12 +205,29 @@ impl GraphicsContext {
     pub fn set_projection(&mut self, dimensions: impl Into<mint::Vector2<f32>>) {
         let dimensions: mint::Vector2<f32> = dimensions.into();
         self.projection = projection_matrix(dimensions.x, dimensions.y);
+        self.gfx_config.render_dimensions = dimensions;
     }
 
     pub fn surface_dimensions(&self) -> mint::Vector2<u32> {
         mint::Vector2 {
-            x: self.config.width,
-            y: self.config.height,
+            x: self.surface_config.width,
+            y: self.surface_config.height,
+        }
+    }
+
+    /// This doesn't actually normalize, it scales dimensions properly.
+    /// The reason for this name is that when render_dimensions = [1.0, 1.0],
+    /// then this will actually normalize.
+    pub(crate) fn normalization_vector(&self) -> mint::Vector2<f32> {
+        let view_dim = self.surface_dimensions();
+        let view_dim = mint::Vector2 {
+            x: view_dim.x as f32,
+            y: view_dim.y as f32,
+        };
+        let render_dim = self.gfx_config.render_dimensions;
+        mint::Vector2 {
+            x: render_dim.x / view_dim.x,
+            y: render_dim.y / view_dim.y,
         }
     }
 

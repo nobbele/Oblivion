@@ -18,6 +18,7 @@ use crate::{GraphicsContext, PipelineData, Render, Transform};
 /// ```
 pub struct Image {
     data: PipelineData,
+    dimensions: mint::Vector2<f32>,
 }
 
 impl Image {
@@ -72,6 +73,7 @@ impl Image {
             ],
             label: Some("Oblivion_ImageBindGroup"),
         });
+        let render_dim = ctx.gfx_config.render_dimensions;
 
         Image {
             data: PipelineData {
@@ -80,11 +82,15 @@ impl Image {
                 instance_buffer: Rc::clone(&ctx.identity_instance_buffer),
                 object_dimensions: mint::Vector2 { x: 1.0, y: 1.0 },
             },
+            dimensions: render_dim,
         }
     }
 
     /// Pushes this image to the draw queue.
     pub fn draw(&self, render: &mut Render, transform: Transform) {
+        let mut transform = transform;
+        transform.scale.x *= self.dimensions.x;
+        transform.scale.y *= self.dimensions.y;
         render.push_data(self.data.clone(), 1, transform, 0);
     }
 }

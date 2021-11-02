@@ -1,4 +1,4 @@
-use oblivion::{GraphicsContext, Render};
+use oblivion::{GraphicsConfig, GraphicsContext, Render};
 use winit::{
     dpi::LogicalSize,
     event::{Event, VirtualKeyCode, WindowEvent},
@@ -21,7 +21,10 @@ pub fn run<E: Example + 'static>() {
     let mut ctx = GraphicsContext::new(
         &window,
         [window.inner_size().width, window.inner_size().height],
-        true,
+        GraphicsConfig {
+            vsync: true,
+            render_dimensions: [1.0, 1.0].into(),
+        },
     )
     .unwrap();
 

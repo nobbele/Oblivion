@@ -11,7 +11,7 @@ impl Shader {
         ctx.pipeline_store.push(create_pipeline(
             "CustomShader",
             &ctx.device,
-            ctx.config.format,
+            ctx.surface_config.format,
             source,
             &ctx.texture_bind_group_layout,
             &ctx.mvp_bind_group_layout,

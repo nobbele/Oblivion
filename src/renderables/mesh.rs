@@ -307,9 +307,11 @@ impl Mesh {
                 y: acc.y.max(v.position.y),
             },
         );
+
+        let norm_vec = ctx.normalization_vector();
         let object_dimensions = mint::Vector2 {
-            x: max_point.x - min_point.x,
-            y: max_point.y - min_point.y,
+            x: (max_point.x - min_point.x) * norm_vec.x,
+            y: (max_point.y - min_point.y) * norm_vec.y,
         };
 
         Mesh {

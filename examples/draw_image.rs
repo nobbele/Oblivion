@@ -31,9 +31,9 @@ impl common::Example for DrawImageExample {
             self.image.draw(
                 render,
                 Transform {
-                    offset: [0.0, 0.0].into(),
-                    //position: [0.5, 0.5].into(),
-                    //scale: [0.5, 0.5].into(),
+                    offset: [0.5, 0.5].into(),
+                    position: [0.5, 0.5].into(),
+                    scale: [0.5, 0.5].into(),
                     ..Default::default()
                 },
             );

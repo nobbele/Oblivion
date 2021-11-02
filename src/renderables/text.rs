@@ -146,8 +146,9 @@ impl Text {
                 )
             })
             .unwrap();
-        let pos = [bounds.0.x / 1280.0, bounds.0.y / 720.0].into();
-        let size = [bounds.1.x / 1280.0, bounds.1.y / 720.0].into();
+        let norm_vec = ctx.normalization_vector();
+        let pos = [bounds.0.x * norm_vec.x, bounds.0.y * norm_vec.y].into();
+        let size = [bounds.1.x * norm_vec.x, bounds.1.y * norm_vec.y].into();
         self.bounds = (pos, size);
         self.pipeline_data.object_dimensions = size;
         ctx.glyph_brush.queue(section);
@@ -282,7 +283,8 @@ impl Text {
                         .into_iter()
                         .map(|vertex_list| {
                             vertex_list.map(|mut v| {
-                                v.position = [v.position.x / 1280.0, v.position.y / 720.0].into();
+                                v.position =
+                                    [v.position.x * norm_vec.x, v.position.y * norm_vec.y].into();
                                 v
                             })
                         })
