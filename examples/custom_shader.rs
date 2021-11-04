@@ -32,7 +32,24 @@ impl common::Example for DrawImageExample {
         if self.with_shader {
             oblivion::push_shader(render, &self.shader);
         }
-        self.image.draw(render, Transform::default());
+        oblivion::set_shader_data(render, &[1.0f32, 0.0, 1.0, 1.0]);
+        self.image.draw(
+            render,
+            Transform {
+                position: [0.25, 0.5].into(),
+                scale: [0.5, 0.5].into(),
+                ..Default::default()
+            },
+        );
+        oblivion::set_shader_data(render, &[0.0f32, 1.0, 1.0, 1.0]);
+        self.image.draw(
+            render,
+            Transform {
+                position: [0.75, 0.5].into(),
+                scale: [0.5, 0.5].into(),
+                ..Default::default()
+            },
+        );
         if self.with_shader {
             oblivion::pop_shader(render);
         }

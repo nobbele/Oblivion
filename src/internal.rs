@@ -77,6 +77,7 @@ pub(crate) struct PipelineData {
 pub(crate) struct DrawData {
     pub pipeline_id: usize,
     pub transform: Transform,
+    pub uniform_extra: Vec<u8>,
 }
 
 pub(crate) struct RenderData {

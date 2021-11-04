@@ -215,6 +215,9 @@ pub struct Render {
     shader_stack: Vec<usize>,
     render_groups: Vec<RenderGroup>,
     render_stack: Vec<usize>,
+    // TODO make this a big buffer for all shader datas rather than just the active one?
+    // TODO it would save lots of heap allocations.
+    active_shader_data: Vec<u8>,
 }
 
 impl Default for Render {
@@ -223,6 +226,7 @@ impl Default for Render {
             shader_stack: Default::default(),
             render_groups: vec![RenderGroup::default()],
             render_stack: Default::default(),
+            active_shader_data: Vec::new(),
         }
     }
 }
@@ -249,12 +253,14 @@ impl Render {
             .last()
             .copied()
             .unwrap_or(default_pipeline_id);
+        let uniform_extra = self.active_shader_data.clone();
         self.current_render_group().queue.push(RenderData {
             pipeline_data,
             instance_count,
             instance_data: DrawData {
                 pipeline_id,
                 transform,
+                uniform_extra,
             },
         })
     }
@@ -276,6 +282,10 @@ pub fn push_shader(render: &mut Render, shader: &Shader) {
 /// Removes the active shader and goes back to the previous one.
 pub fn pop_shader(render: &mut Render) {
     render.shader_stack.pop();
+}
+
+pub fn set_shader_data<T: bytemuck::Pod>(render: &mut Render, data: &T) {
+    render.active_shader_data = bytemuck::bytes_of(data).to_vec();
 }
 
 /// Sets an active canvas. Use `oblivion::pop_canvas` to unset it.

@@ -153,12 +153,14 @@ impl GraphicsContext {
             device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
                 label: Some("Oblivion_IdentityInstanceBuffer"),
                 usage: wgpu::BufferUsages::VERTEX,
-                contents: bytemuck::cast_slice(&[Transform {
-                    offset: [0.0, 0.0].into(),
-                    ..Default::default()
-                }
-                .as_matrix(mint::Vector2 { x: 1.0, y: 1.0 })
-                .to_cols_array_2d()]),
+                contents: bytemuck::cast_slice(
+                    &Transform {
+                        offset: [0.0, 0.0].into(),
+                        ..Default::default()
+                    }
+                    .as_matrix(mint::Vector2 { x: 1.0, y: 1.0 })
+                    .to_cols_array_2d(),
+                ),
             }),
         );
 
@@ -269,7 +271,12 @@ impl GraphicsContext {
             for (
                 idx,
                 RenderData {
-                    instance_data: DrawData { transform, .. },
+                    instance_data:
+                        DrawData {
+                            transform,
+                            uniform_extra,
+                            ..
+                        },
                     pipeline_data:
                         PipelineData {
                             object_dimensions, ..
@@ -281,7 +288,10 @@ impl GraphicsContext {
                 let start = (idx + uniform_start_idx) * uniform_alignment as usize;
                 let mat = self.projection * transform.as_matrix(*object_dimensions);
                 self.uniform_buffer_data[start..start + UNIFORM_SIZE]
-                    .copy_from_slice(bytemuck::cast_slice(&mat.to_cols_array_2d()))
+                    .copy_from_slice(bytemuck::cast_slice(&mat.to_cols_array_2d()));
+                let extra_start = start + UNIFORM_SIZE;
+                self.uniform_buffer_data[extra_start..extra_start + uniform_extra.len()]
+                    .copy_from_slice(uniform_extra);
             }
             self.queue
                 .write_buffer(&self.uniform_buffer, 0, &self.uniform_buffer_data);
