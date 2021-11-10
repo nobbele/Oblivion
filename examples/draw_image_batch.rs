@@ -16,6 +16,15 @@ impl common::Example for DrawImageBatchExample {
         let mut batch = ImageBatch::new(ctx, [dimensions.0, dimensions.1], image_rgba);
         batch.add_instance(
             ctx,
+            &[Transform {
+                position: [0.5, 0.5].into(),
+                scale: [10.0, 10.0].into(),
+                ..Default::default()
+            }],
+        );
+        batch.clear();
+        batch.add_instance(
+            ctx,
             &[
                 Transform {
                     position: [0.25, 0.25].into(),
@@ -47,6 +56,7 @@ impl common::Example for DrawImageBatchExample {
             Transform {
                 position: [0.0, 0.0].into(),
                 scale: [1.0, 1.0].into(),
+                offset: [0.0, 0.0].into(),
                 ..Default::default()
             },
         );

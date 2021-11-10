@@ -9,6 +9,7 @@ pub struct ImageBatch {
     data: PipelineData,
     instance_buffer_capacity: u64,
     instance_buffer_count: u64,
+    dimensions: mint::Vector2<f32>,
 }
 
 impl ImageBatch {
@@ -81,6 +82,7 @@ impl ImageBatch {
             },
             instance_buffer_capacity: 0,
             instance_buffer_count: 0,
+            dimensions: ctx.gfx_config.render_dimensions,
         }
     }
 
@@ -141,8 +143,15 @@ impl ImageBatch {
         self.instance_buffer_count = new_count;
     }
 
+    pub fn clear(&mut self) {
+        self.instance_buffer_count = 0;
+    }
+
     /// Pushes this image batch to the draw queue.
     pub fn draw(&self, render: &mut Render, transform: Transform) {
+        let mut transform = transform;
+        transform.scale.x *= self.dimensions.x;
+        transform.scale.y *= self.dimensions.y;
         render.push_data(
             self.data.clone(),
             self.instance_buffer_count as u32,
