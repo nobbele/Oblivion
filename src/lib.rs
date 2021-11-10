@@ -1,9 +1,8 @@
 #![warn(clippy::clone_on_ref_ptr)]
 
 pub(crate) use crate::internal::*;
-pub use crate::{canvas::*, context::*, error::*, renderables::*, shader::*};
+pub use crate::{context::*, error::*, renderables::*, shader::*};
 
-mod canvas;
 mod context;
 mod error;
 pub(crate) mod helpers;

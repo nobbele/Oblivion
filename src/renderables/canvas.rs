@@ -81,7 +81,7 @@ impl Canvas {
         let padded_width = self.dimensions.x as u64 + padded_width_padding;
 
         let download_buffer = ctx.device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("Oblivion_TextUploadBuffer"),
+            label: Some("Oblivion_CanvasUploadBuffer"),
             size: padded_width * self.dimensions.y as u64 * 4,
             usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
             mapped_at_creation: false,
@@ -89,7 +89,7 @@ impl Canvas {
         let mut command_encoder =
             ctx.device
                 .create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                    label: Some("Oblivion_TextCommandEncoder"),
+                    label: Some("Oblivion_CanvasCommandEncoder"),
                 });
         command_encoder.copy_texture_to_buffer(
             wgpu::ImageCopyTexture {

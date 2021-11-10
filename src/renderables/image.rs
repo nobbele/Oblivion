@@ -1,8 +1,8 @@
-use std::rc::Rc;
+use std::{num::NonZeroU32, rc::Rc};
 
 use wgpu::util::DeviceExt;
 
-use crate::{GraphicsContext, PipelineData, Render, Transform};
+use crate::{GraphicsContext, OblivionError, OblivionResult, PipelineData, Render, Transform};
 
 /// Essentially just a textured rectangle.
 ///
@@ -19,6 +19,7 @@ use crate::{GraphicsContext, PipelineData, Render, Transform};
 pub struct Image {
     data: PipelineData,
     dimensions: mint::Vector2<f32>,
+    texture: wgpu::Texture,
 }
 
 impl Image {
@@ -82,7 +83,61 @@ impl Image {
                 object_dimensions: mint::Vector2 { x: 1.0, y: 1.0 },
             },
             dimensions: ctx.gfx_config.render_dimensions,
+            texture,
         }
+    }
+
+    /// Gets the raw RGBA data of this canvas's underlying texture.
+    pub fn download_rgba(&self, ctx: &mut GraphicsContext) -> OblivionResult<Vec<u8>> {
+        let align = wgpu::COPY_BYTES_PER_ROW_ALIGNMENT as wgpu::BufferAddress;
+        let padded_width_padding = (align - self.dimensions.x as u64 % align) % align;
+        let padded_width = self.dimensions.x as u64 + padded_width_padding;
+
+        let download_buffer = ctx.device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("Oblivion_ImageDownloadBuffer"),
+            size: padded_width * self.dimensions.y as u64 * 4,
+            usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
+            mapped_at_creation: false,
+        });
+        let mut command_encoder =
+            ctx.device
+                .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                    label: Some("Oblivion_ImageCommandEncoder"),
+                });
+        command_encoder.copy_texture_to_buffer(
+            wgpu::ImageCopyTexture {
+                texture: &self.texture,
+                mip_level: 0,
+                origin: wgpu::Origin3d { x: 0, y: 0, z: 0 },
+                aspect: wgpu::TextureAspect::All,
+            },
+            wgpu::ImageCopyBuffer {
+                buffer: &download_buffer,
+                layout: wgpu::ImageDataLayout {
+                    offset: 0,
+                    bytes_per_row: NonZeroU32::new(padded_width as u32),
+                    rows_per_image: NonZeroU32::new(self.dimensions.x as u32),
+                },
+            },
+            wgpu::Extent3d {
+                width: self.dimensions.x as u32,
+                height: self.dimensions.y as u32,
+                depth_or_array_layers: 1,
+            },
+        );
+        ctx.queue.submit(std::iter::once(command_encoder.finish()));
+
+        let fut = download_buffer.slice(..).map_async(wgpu::MapMode::Read);
+        ctx.device.poll(wgpu::Maintain::Wait);
+        pollster::block_on(fut).map_err(OblivionError::MapBuffer)?;
+
+        let buffer_view = download_buffer.slice(..).get_mapped_range();
+        let mut v = Vec::with_capacity(self.dimensions.x as usize * self.dimensions.y as usize * 4);
+        for y in 0..self.dimensions.y as u64 {
+            let start = y as usize * padded_width as usize;
+            v.extend_from_slice(&buffer_view[start..start + self.dimensions.x as usize * 4]);
+        }
+        Ok(v)
     }
 
     /// Pushes this image to the draw queue.
