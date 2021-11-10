@@ -78,12 +78,13 @@ impl Canvas {
     /// Gets the raw RGBA data of this canvas's underlying texture.
     pub fn download_rgba(&self, ctx: &mut GraphicsContext) -> OblivionResult<Vec<u8>> {
         let align = wgpu::COPY_BYTES_PER_ROW_ALIGNMENT as wgpu::BufferAddress;
-        let padded_width_padding = (align - self.dimensions.x as u64 % align) % align;
-        let padded_width = self.dimensions.x as u64 + padded_width_padding;
+        let byte_width = self.dimensions.x as u64 * 4;
+        let padded_width_padding = (align - byte_width % align) % align;
+        let padded_width = byte_width + padded_width_padding;
 
         let download_buffer = ctx.device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Oblivion_CanvasUploadBuffer"),
-            size: padded_width * self.dimensions.y as u64 * 4,
+            size: padded_width * self.dimensions.y as u64,
             usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
             mapped_at_creation: false,
         });
