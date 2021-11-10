@@ -136,10 +136,10 @@ impl Image {
         pollster::block_on(fut).map_err(OblivionError::MapBuffer)?;
 
         let buffer_view = download_buffer.slice(..).get_mapped_range();
-        let mut v = Vec::with_capacity(self.dimensions.x as usize * self.dimensions.y as usize * 4);
+        let mut v = Vec::with_capacity(byte_width as usize * self.dimensions.y as usize);
         for y in 0..self.dimensions.y as u64 {
             let start = y as usize * padded_width as usize;
-            v.extend_from_slice(&buffer_view[start..start + self.dimensions.x as usize * 4]);
+            v.extend_from_slice(&buffer_view[start..start + byte_width as usize]);
         }
         Ok(v)
     }
