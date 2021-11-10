@@ -16,10 +16,11 @@ use crate::{GraphicsContext, OblivionError, OblivionResult, PipelineData, Render
 /// /* ... */
 /// image.draw(&mut render, Transform::default());
 /// ```
+#[derive(Clone)]
 pub struct Image {
     data: PipelineData,
     dimensions: mint::Vector2<f32>,
-    texture: wgpu::Texture,
+    texture: Rc<wgpu::Texture>,
 }
 
 impl Image {
@@ -83,7 +84,7 @@ impl Image {
                 object_dimensions: mint::Vector2 { x: 1.0, y: 1.0 },
             },
             dimensions: ctx.gfx_config.render_dimensions,
-            texture,
+            texture: Rc::new(texture),
         }
     }
 

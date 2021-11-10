@@ -54,10 +54,11 @@ impl From<String> for TextFragment {
 }
 
 /// Renderable text object.
+#[derive(Clone)]
 pub struct Text {
     pipeline_data: PipelineData,
-    texture: wgpu::Texture,
-    upload_buffer: wgpu::Buffer,
+    texture: Rc<wgpu::Texture>,
+    upload_buffer: Rc<wgpu::Buffer>,
     upload_buffer_size: wgpu::BufferAddress,
     fragments: Vec<TextFragment>,
     dirty: bool,
@@ -86,8 +87,8 @@ impl Text {
                 instance_buffer: Rc::clone(&ctx.identity_instance_buffer),
                 object_dimensions: mint::Vector2 { x: 0.0, y: 0.0 },
             },
-            texture,
-            upload_buffer,
+            texture: Rc::new(texture),
+            upload_buffer: Rc::new(upload_buffer),
             upload_buffer_size,
             fragments: Vec::new(),
             dirty: false,
@@ -170,12 +171,13 @@ impl Text {
 
                 let padded_data_size = padded_width * height;
                 if self.upload_buffer_size < padded_data_size {
-                    self.upload_buffer = ctx.device.create_buffer(&wgpu::BufferDescriptor {
-                        label: Some("Oblivion_TextUploadBuffer"),
-                        size: padded_data_size,
-                        usage: wgpu::BufferUsages::COPY_SRC | wgpu::BufferUsages::MAP_WRITE,
-                        mapped_at_creation: false,
-                    });
+                    self.upload_buffer =
+                        Rc::new(ctx.device.create_buffer(&wgpu::BufferDescriptor {
+                            label: Some("Oblivion_TextUploadBuffer"),
+                            size: padded_data_size,
+                            usage: wgpu::BufferUsages::COPY_SRC | wgpu::BufferUsages::MAP_WRITE,
+                            mapped_at_creation: false,
+                        }));
 
                     self.upload_buffer_size = padded_data_size;
                 }
@@ -307,7 +309,7 @@ impl Text {
 
     fn resize_texture(&mut self, ctx: &mut GraphicsContext, dimensions: [u32; 2]) {
         let (texture, bind_group) = create_texture(ctx, dimensions);
-        self.texture = texture;
+        self.texture = Rc::new(texture);
         self.pipeline_data.bind_group = Rc::new(bind_group);
     }
 

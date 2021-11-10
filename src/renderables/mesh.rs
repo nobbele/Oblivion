@@ -58,6 +58,7 @@ impl Default for DrawMode {
 }
 
 /// Provides a way to build `Mesh` with convient functions such as triangle and rectangle generators.
+#[derive(Clone)]
 pub struct MeshBuilder {
     buffers: lyon::tessellation::VertexBuffers<Vertex, u16>,
 }
@@ -233,6 +234,7 @@ impl MeshBuilder {
 }
 
 /// Renderable mesh object. Essentially a list of shapes.
+#[derive(Clone)]
 pub struct Mesh {
     data: PipelineData,
 }

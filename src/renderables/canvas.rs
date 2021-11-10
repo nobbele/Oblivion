@@ -5,9 +5,10 @@ use crate::{GraphicsContext, OblivionError, OblivionResult, PipelineData, Render
 // TODO make this a wrapper of image maybe?
 
 /// Canvases are used as rendering target to create a fake screen.
+#[derive(Clone)]
 pub struct Canvas {
     pub(crate) canvas_id: usize,
-    pub(crate) texture: wgpu::Texture,
+    pub(crate) texture: Rc<wgpu::Texture>,
     pub(crate) data: PipelineData,
     pub dimensions: mint::Vector2<u32>,
 }
@@ -69,7 +70,7 @@ impl Canvas {
                 instance_buffer: Rc::clone(&ctx.identity_instance_buffer),
                 object_dimensions: mint::Vector2 { x: 1.0, y: 1.0 },
             },
-            texture,
+            texture: Rc::new(texture),
             dimensions,
         }
     }
