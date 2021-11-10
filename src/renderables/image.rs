@@ -120,7 +120,7 @@ impl Image {
                 layout: wgpu::ImageDataLayout {
                     offset: 0,
                     bytes_per_row: NonZeroU32::new(padded_width as u32),
-                    rows_per_image: NonZeroU32::new(self.dimensions.x as u32),
+                    rows_per_image: NonZeroU32::new(self.dimensions.y as u32),
                 },
             },
             wgpu::Extent3d {

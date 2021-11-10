@@ -14,6 +14,7 @@ impl common::Example for DrawImageExample {
         let image_rgba = image_data.as_rgba8().unwrap();
         let dimensions = image_data.dimensions();
         let image = Image::new(ctx, [dimensions.0, dimensions.1], image_rgba);
+        //image.download_rgba(ctx).unwrap();
         DrawImageExample { image }
     }
 
