@@ -19,7 +19,8 @@ use crate::{GraphicsContext, OblivionError, OblivionResult, PipelineData, Render
 #[derive(Clone)]
 pub struct Image {
     data: PipelineData,
-    dimensions: mint::Vector2<f32>,
+    real_dim: mint::Vector2<f32>,
+    tex_dim: mint::Vector2<f32>,
     texture: Rc<wgpu::Texture>,
 }
 
@@ -33,7 +34,7 @@ impl Image {
         let dimensions = dimensions.into();
         let size = wgpu::Extent3d {
             width: dimensions.x,
-            height: dimensions.x,
+            height: dimensions.y,
             depth_or_array_layers: 1,
         };
         let texture = ctx.device.create_texture_with_data(
@@ -85,7 +86,11 @@ impl Image {
                 instance_buffer: Rc::clone(&ctx.identity_instance_buffer),
                 object_dimensions: mint::Vector2 { x: 1.0, y: 1.0 },
             },
-            dimensions: ctx.gfx_config.render_dimensions,
+            real_dim: ctx.gfx_config.render_dimensions,
+            tex_dim: mint::Vector2 {
+                x: dimensions.x as _,
+                y: dimensions.y as _,
+            },
             texture: Rc::new(texture),
         }
     }
@@ -93,13 +98,13 @@ impl Image {
     /// Gets the raw RGBA data of this canvas's underlying texture.
     pub fn download_rgba(&self, ctx: &mut GraphicsContext) -> OblivionResult<Vec<u8>> {
         let align = wgpu::COPY_BYTES_PER_ROW_ALIGNMENT as wgpu::BufferAddress;
-        let byte_width = self.dimensions.x as u64 * 4;
+        let byte_width = self.tex_dim.x as u64 * 4;
         let padded_width_padding = (align - byte_width % align) % align;
         let padded_width = byte_width + padded_width_padding;
 
         let download_buffer = ctx.device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Oblivion_ImageDownloadBuffer"),
-            size: padded_width * self.dimensions.y as u64,
+            size: padded_width * self.tex_dim.y as u64,
             usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
             mapped_at_creation: false,
         });
@@ -120,12 +125,12 @@ impl Image {
                 layout: wgpu::ImageDataLayout {
                     offset: 0,
                     bytes_per_row: NonZeroU32::new(padded_width as u32),
-                    rows_per_image: NonZeroU32::new(self.dimensions.y as u32),
+                    rows_per_image: NonZeroU32::new(self.tex_dim.y as u32),
                 },
             },
             wgpu::Extent3d {
-                width: self.dimensions.x as u32,
-                height: self.dimensions.y as u32,
+                width: self.tex_dim.x as u32,
+                height: self.tex_dim.y as u32,
                 depth_or_array_layers: 1,
             },
         );
@@ -136,8 +141,8 @@ impl Image {
         pollster::block_on(fut).map_err(OblivionError::MapBuffer)?;
 
         let buffer_view = download_buffer.slice(..).get_mapped_range();
-        let mut v = Vec::with_capacity(byte_width as usize * self.dimensions.y as usize);
-        for y in 0..self.dimensions.y as u64 {
+        let mut v = Vec::with_capacity(byte_width as usize * self.tex_dim.y as usize);
+        for y in 0..self.tex_dim.y as u64 {
             let start = y as usize * padded_width as usize;
             v.extend_from_slice(&buffer_view[start..start + byte_width as usize]);
         }
@@ -147,8 +152,8 @@ impl Image {
     /// Pushes this image to the draw queue.
     pub fn draw(&self, render: &mut Render, transform: Transform) {
         let mut transform = transform;
-        transform.scale.x *= self.dimensions.x;
-        transform.scale.y *= self.dimensions.y;
+        transform.scale.x *= self.real_dim.x;
+        transform.scale.y *= self.real_dim.y;
         render.push_data(self.data.clone(), 1, transform, 0);
     }
 }
