@@ -1,0 +1,225 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in library 'oblivion'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--lib",
+                    "--package=oblivion"
+                ],
+                "filter": {
+                    "name": "oblivion",
+                    "kind": "lib"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug example 'common'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--example=common",
+                    "--package=oblivion"
+                ],
+                "filter": {
+                    "name": "common",
+                    "kind": "example"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug example 'custom_shader'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--example=custom_shader",
+                    "--package=oblivion"
+                ],
+                "filter": {
+                    "name": "custom_shader",
+                    "kind": "example"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug example 'draw_canvas'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--example=draw_canvas",
+                    "--package=oblivion"
+                ],
+                "filter": {
+                    "name": "draw_canvas",
+                    "kind": "example"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug example 'draw_image_batch'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--example=draw_image_batch",
+                    "--package=oblivion"
+                ],
+                "filter": {
+                    "name": "draw_image_batch",
+                    "kind": "example"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug example 'draw_mesh'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--example=draw_mesh",
+                    "--package=oblivion"
+                ],
+                "filter": {
+                    "name": "draw_mesh",
+                    "kind": "example"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug example 'draw_meshes'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--example=draw_meshes",
+                    "--package=oblivion"
+                ],
+                "filter": {
+                    "name": "draw_meshes",
+                    "kind": "example"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug example 'draw_projection'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--example=draw_projection",
+                    "--package=oblivion"
+                ],
+                "filter": {
+                    "name": "draw_projection",
+                    "kind": "example"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug example 'draw_text'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--example=draw_text",
+                    "--package=oblivion"
+                ],
+                "filter": {
+                    "name": "draw_text",
+                    "kind": "example"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug example 'draw_transform'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--example=draw_transform",
+                    "--package=oblivion"
+                ],
+                "filter": {
+                    "name": "draw_transform",
+                    "kind": "example"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug example 'bunnymark'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--example=bunnymark",
+                    "--package=oblivion"
+                ],
+                "filter": {
+                    "name": "bunnymark",
+                    "kind": "example"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug example 'draw_image'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--example=draw_image",
+                    "--package=oblivion"
+                ],
+                "filter": {
+                    "name": "draw_image",
+                    "kind": "example"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}

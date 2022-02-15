@@ -257,7 +257,7 @@ impl Mesh {
                 sample_count: 1,
                 dimension: wgpu::TextureDimension::D2,
                 format: wgpu::TextureFormat::Rgba8UnormSrgb,
-                usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+                usage: wgpu::TextureUsages::TEXTURE_BINDING,
                 label: Some("Oblivion_MeshTexture"),
             },
             &[255, 255, 255, 255],
@@ -310,11 +310,11 @@ impl Mesh {
             },
         );
 
-        let norm_vec = ctx.normalization_vector();
         let object_dimensions = mint::Vector2 {
-            x: (max_point.x - min_point.x) * norm_vec.x,
-            y: (max_point.y - min_point.y) * norm_vec.y,
+            x: (max_point.x - min_point.x),
+            y: (max_point.y - min_point.y),
         };
+        dbg!(object_dimensions);
 
         Mesh {
             data: PipelineData {

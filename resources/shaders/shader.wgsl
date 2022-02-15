@@ -13,12 +13,11 @@ struct InstanceInput {
     [[location(8)]] matrix_3: vec4<f32>;
 };
 
-[[block]]
 struct Uniform {
     mvp: mat4x4<f32>;
 };
 [[group(1), binding(0)]]
-var<uniform> uniform: Uniform;
+var<uniform> uni: Uniform;
 
 struct VertexOutput {
     [[builtin(position)]] clip_position: vec4<f32>;
@@ -27,7 +26,7 @@ struct VertexOutput {
 };
 
 [[stage(vertex)]]
-fn main(
+fn vs_main(
     model: VertexInput,
     instance: InstanceInput,
 ) -> VertexOutput {
@@ -42,7 +41,7 @@ fn main(
     out.color = model.color;
     out.uv = model.uv;
     let position = instance_matrix * vec4<f32>(model.position, 0.0, 1.0);
-    let out_pos = uniform.mvp * position;
+    let out_pos = uni.mvp * position;
     out.clip_position = out_pos;
     return out;
 }
@@ -55,7 +54,7 @@ var t_diffuse: texture_2d<f32>;
 var s_diffuse: sampler;
 
 [[stage(fragment)]]
-fn main(in: VertexOutput) -> [[location(0)]] vec4<f32> {
+fn fs_main(in: VertexOutput) -> [[location(0)]] vec4<f32> {
     return in.color * textureSample(t_diffuse, s_diffuse, in.uv);
     //return textureSample(t_diffuse, s_diffuse, in.uv);
     //return vec4<f32>(in.color, 1.0);

@@ -5,6 +5,7 @@ mod common;
 struct DrawTextExample {
     text: Text,
     more_text: Text,
+    even_more_text: Text,
     count: u32,
     mesh: oblivion::Mesh,
 }
@@ -21,6 +22,12 @@ impl common::Example for DrawTextExample {
         more_text.flush(ctx);
         DrawTextExample {
             text: Text::new(ctx),
+            even_more_text: {
+                let mut text = Text::new(ctx);
+                text.add_text(["Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."]);
+                text.flush(ctx);
+                text
+            },
             more_text,
             count: 0,
             mesh: oblivion::Mesh::new(ctx, &[], &[]),
@@ -30,6 +37,7 @@ impl common::Example for DrawTextExample {
     fn update(&mut self, ctx: &mut GraphicsContext) {
         self.count += 1;
         self.text.clear();
+        //self.text = Text::new(ctx);
         self.text.add_text([format!("Frame Count: {}", self.count)]);
         self.text.flush(ctx);
 
@@ -70,9 +78,18 @@ impl common::Example for DrawTextExample {
                 ..Default::default()
             },
         );
+        self.even_more_text.draw(
+            render,
+            Transform {
+                position: [0.5, 0.8].into(),
+                scale: [0.5, 0.5].into(),
+                ..Default::default()
+            },
+        );
         self.mesh.draw(
             render,
             Transform {
+                offset: [0.5, 0.5].into(),
                 position: [0.5, 0.5].into(),
                 scale: [0.5, 0.5].into(),
                 ..Default::default()

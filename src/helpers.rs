@@ -19,7 +19,11 @@ pub fn get_adapter_surface(
     }))
     .ok_or(OblivionError::RequestAdapter)?;
 
-    println!("Using '{}'", adapter.get_info().name);
+    println!(
+        "Using '{}' on {:?}",
+        adapter.get_info().name,
+        adapter.get_info().backend
+    );
 
     Ok((adapter, surface))
 }
@@ -62,12 +66,12 @@ pub fn create_pipeline(
         layout: Some(&render_pipeline_layout),
         vertex: wgpu::VertexState {
             module: &shader,
-            entry_point: "main",
+            entry_point: "vs_main",
             buffers: &[Vertex::desc(), instance_desc()],
         },
         fragment: Some(wgpu::FragmentState {
             module: &shader,
-            entry_point: "main",
+            entry_point: "fs_main",
             targets: &[wgpu::ColorTargetState {
                 format,
                 blend: Some(wgpu::BlendState::ALPHA_BLENDING),
@@ -80,9 +84,10 @@ pub fn create_pipeline(
             front_face: wgpu::FrontFace::Cw,
             cull_mode: None, //Some(wgpu::Face::Back),
             polygon_mode: wgpu::PolygonMode::Fill,
-            clamp_depth: false,
+            unclipped_depth: false,
             conservative: false,
         },
+        multiview: None,
         depth_stencil: None,
         multisample: wgpu::MultisampleState {
             count: 1,

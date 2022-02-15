@@ -1,13 +1,13 @@
 #![warn(clippy::clone_on_ref_ptr)]
 
 pub(crate) use crate::internal::*;
-pub use crate::{context::*, error::*, renderables::*, shader::*};
+pub use crate::{context::*, drawables::*, error::*, shader::*};
 
 mod context;
+mod drawables;
 mod error;
 pub(crate) mod helpers;
 mod internal;
-mod renderables;
 mod shader;
 
 /// Vertex data.
@@ -24,11 +24,10 @@ pub struct Vertex {
 
 unsafe impl bytemuck::Pod for Vertex {}
 unsafe impl bytemuck::Zeroable for Vertex {}
-
 impl Vertex {
     pub(crate) fn desc<'a>() -> wgpu::VertexBufferLayout<'a> {
         wgpu::VertexBufferLayout {
-            array_stride: std::mem::size_of::<Vertex>() as wgpu::BufferAddress,
+            array_stride: std::mem::size_of::<[f32; 8]>() as wgpu::BufferAddress,
             step_mode: wgpu::VertexStepMode::Vertex,
             attributes: &[
                 wgpu::VertexAttribute {
@@ -101,7 +100,6 @@ pub const QUAD_VERTICES: &[Vertex] = &[
 
 pub const QUAD_INDICES: &[u16] = &[0, 1, 2, 1, 3, 2];
 
-// TODO make this a separate crate
 /// Angle, uses radians internally.
 ///
 /// Example usage:

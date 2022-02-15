@@ -45,16 +45,18 @@ impl MeshBuffer {
     pub fn from_slices(device: &wgpu::Device, vertex: &[Vertex], index: &[u16]) -> MeshBuffer {
         let vertex = (
             device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: Some("Oblivion_QuadVertexBuffer"),
+                label: Some("Oblivion_MeshVertexBuffer"),
                 contents: bytemuck::cast_slice(vertex),
-                usage: wgpu::BufferUsages::VERTEX,
+                // MAP_READ is needed to not corrupt the data.
+                // Your guess is as good as mine.
+                usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::MAP_READ,
             }),
             vertex.len() as u32,
         );
 
         let index = (
             device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: Some("Oblivion_QuadIndexBuffer"),
+                label: Some("Oblivion_MeshIndexBuffer"),
                 contents: bytemuck::cast_slice(index),
                 usage: wgpu::BufferUsages::INDEX,
             }),

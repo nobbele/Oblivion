@@ -95,10 +95,7 @@ impl GraphicsContext {
                     wgpu::BindGroupLayoutEntry {
                         binding: 1,
                         visibility: wgpu::ShaderStages::FRAGMENT,
-                        ty: wgpu::BindingType::Sampler {
-                            comparison: false,
-                            filtering: true,
-                        },
+                        ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
                         count: None,
                     },
                 ],
@@ -169,7 +166,9 @@ impl GraphicsContext {
             gfx_config.render_dimensions.y,
         );
 
-        let mut glyph_brush = GlyphBrushBuilder::using_fonts(vec![]).build();
+        let mut glyph_brush = GlyphBrushBuilder::using_fonts(vec![])
+            .cache_glyph_positioning(false)
+            .build();
         let default_font = Font::new_raw(
             &mut glyph_brush,
             include_bytes!("../resources/fonts/DejaVuSans.ttf").to_vec(),
