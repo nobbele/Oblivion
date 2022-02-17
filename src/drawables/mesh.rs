@@ -314,7 +314,6 @@ impl Mesh {
             x: (max_point.x - min_point.x),
             y: (max_point.y - min_point.y),
         };
-        dbg!(object_dimensions);
 
         Mesh {
             data: PipelineData {

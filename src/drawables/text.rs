@@ -31,15 +31,12 @@ pub struct TextFragment {
     pub text: String,
     pub font: Option<Font>,
     pub color: rgb::RGBA<f32>,
+    pub scale: f32,
 }
 
 impl From<&str> for TextFragment {
     fn from(s: &str) -> Self {
-        TextFragment {
-            text: s.to_owned(),
-            font: None,
-            color: [1.0, 1.0, 1.0, 1.0].into(),
-        }
+        TextFragment::from(s.to_owned())
     }
 }
 
@@ -49,6 +46,7 @@ impl From<String> for TextFragment {
             text: s,
             font: None,
             color: [1.0, 1.0, 1.0, 1.0].into(),
+            scale: 48.0,
         }
     }
 }
@@ -126,7 +124,7 @@ impl Text {
                 .iter()
                 .map(|frag| {
                     glyph_brush::Text::new(&frag.text)
-                        .with_scale(72.0)
+                        .with_scale(frag.scale)
                         .with_font_id(frag.font.as_ref().unwrap_or(&ctx.default_font).id)
                         .with_color(frag.color)
                 })
