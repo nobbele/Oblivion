@@ -32,22 +32,17 @@ impl lyon::tessellation::FillVertexConstructor<Vertex> for VertexBuilder {
 }
 
 pub enum DrawMode {
-    Fill { tolerance: f32 },
-    Stroke { width: f32, tolerance: f32 },
+    Fill,
+    Stroke(f32),
 }
 
 impl DrawMode {
     pub fn fill() -> DrawMode {
-        DrawMode::Fill {
-            tolerance: lyon::tessellation::FillOptions::DEFAULT_TOLERANCE / 1000.0,
-        }
+        DrawMode::Fill
     }
 
     pub fn stroke(width: f32) -> DrawMode {
-        DrawMode::Stroke {
-            width,
-            tolerance: lyon::tessellation::FillOptions::DEFAULT_TOLERANCE / 1000.0,
-        }
+        DrawMode::Stroke(width)
     }
 }
 
@@ -87,7 +82,7 @@ impl MeshBuilder {
         let mut buffers = &mut self.buffers;
         let mut bb = lyon::tessellation::BuffersBuilder::new(&mut buffers, VertexBuilder { color });
         match mode {
-            DrawMode::Fill { tolerance } => {
+            DrawMode::Fill => {
                 let mut tessellator = lyon::tessellation::FillTessellator::new();
                 tessellator
                     .tessellate_polygon(
@@ -99,12 +94,12 @@ impl MeshBuilder {
                             ],
                             closed: true,
                         },
-                        &lyon::tessellation::FillOptions::default().with_tolerance(tolerance),
+                        &lyon::tessellation::FillOptions::default(),
                         &mut bb,
                     )
                     .unwrap();
             }
-            DrawMode::Stroke { width, tolerance } => {
+            DrawMode::Stroke(width) => {
                 let mut tessellator = lyon::tessellation::StrokeTessellator::new();
                 tessellator
                     .tessellate_polygon(
@@ -125,9 +120,7 @@ impl MeshBuilder {
                             ],
                             closed: true,
                         },
-                        &lyon::tessellation::StrokeOptions::default()
-                            .with_tolerance(tolerance)
-                            .with_line_width(width),
+                        &lyon::tessellation::StrokeOptions::default().with_line_width(width),
                         &mut bb,
                     )
                     .unwrap();
@@ -150,17 +143,17 @@ impl MeshBuilder {
         let mut buffers = &mut self.buffers;
         let mut bb = lyon::tessellation::BuffersBuilder::new(&mut buffers, VertexBuilder { color });
         match mode {
-            DrawMode::Fill { tolerance } => {
+            DrawMode::Fill => {
                 let mut tessellator = lyon::tessellation::FillTessellator::new();
                 tessellator
                     .tessellate_rectangle(
                         &lyon::math::rect(position.x, position.y, size.x, size.y),
-                        &lyon::tessellation::FillOptions::default().with_tolerance(tolerance),
+                        &lyon::tessellation::FillOptions::default(),
                         &mut bb,
                     )
                     .unwrap();
             }
-            DrawMode::Stroke { width, tolerance } => {
+            DrawMode::Stroke(width) => {
                 let mut tessellator = lyon::tessellation::StrokeTessellator::new();
                 tessellator
                     .tessellate_rectangle(
@@ -170,9 +163,7 @@ impl MeshBuilder {
                             size.x - width,
                             size.y - width,
                         ),
-                        &lyon::tessellation::StrokeOptions::default()
-                            .with_tolerance(tolerance)
-                            .with_line_width(width),
+                        &lyon::tessellation::StrokeOptions::default().with_line_width(width),
                         &mut bb,
                     )
                     .unwrap();
@@ -187,6 +178,7 @@ impl MeshBuilder {
         position: impl Into<mint::Point2<f32>>,
         size: impl Into<mint::Vector2<f32>>,
         color: impl Into<rgb::RGBA<f32>>,
+        tolerance: f32,
         mode: DrawMode,
     ) -> OblivionResult<&mut Self> {
         let position = position.into();
@@ -195,7 +187,7 @@ impl MeshBuilder {
         let mut buffers = &mut self.buffers;
         let mut bb = lyon::tessellation::BuffersBuilder::new(&mut buffers, VertexBuilder { color });
         match mode {
-            DrawMode::Fill { tolerance } => {
+            DrawMode::Fill => {
                 let mut tessellator = lyon::tessellation::FillTessellator::new();
                 tessellator
                     .tessellate_ellipse(
@@ -208,7 +200,7 @@ impl MeshBuilder {
                     )
                     .unwrap();
             }
-            DrawMode::Stroke { width, tolerance } => {
+            DrawMode::Stroke(width) => {
                 let mut tessellator = lyon::tessellation::StrokeTessellator::new();
                 tessellator
                     .tessellate_ellipse(
@@ -224,6 +216,48 @@ impl MeshBuilder {
                     .unwrap();
             }
         }
+        Ok(self)
+    }
+
+    /// Adds a circle/ellipse to the builder.
+    pub fn lines(
+        &mut self,
+        points: &[impl Into<mint::Point2<f32>> + Copy],
+        color: impl Into<rgb::RGBA<f32>>,
+        width: f32,
+    ) -> OblivionResult<&mut Self> {
+        let color = color.into();
+
+        let mut path = lyon::path::Path::builder();
+        let start: mint::Point2<f32> = points[0].into();
+        path.begin(lyon::math::point(start.x, start.y));
+        for &p in points {
+            let p: mint::Point2<f32> = p.into();
+            path.line_to(lyon::math::point(p.x, p.y));
+        }
+        path.end(false);
+        let path = path.build();
+
+        let mut buffers = &mut self.buffers;
+        let mut bb = lyon::tessellation::BuffersBuilder::new(&mut buffers, VertexBuilder { color });
+        let mut tessellator = lyon::tessellation::StrokeTessellator::new();
+        tessellator
+            .tessellate_path(
+                &path,
+                &lyon::tessellation::StrokeOptions::default().with_line_width(width),
+                &mut bb,
+            )
+            .unwrap();
+        Ok(self)
+    }
+
+    pub fn raw(
+        &mut self,
+        vertices: &[Vertex],
+        indices: &[u16],
+    ) -> OblivionResult<&mut MeshBuilder> {
+        self.buffers.vertices.extend_from_slice(vertices);
+        self.buffers.indices.extend_from_slice(indices);
         Ok(self)
     }
 

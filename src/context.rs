@@ -21,6 +21,7 @@ pub struct GraphicsConfig {
 /// Context for graphics. This stores the graphics device, render queue, window surface, and more.
 pub struct GraphicsContext {
     pub(crate) device: wgpu::Device,
+    adapter: wgpu::Adapter,
     pub(crate) queue: wgpu::Queue,
     pub(crate) surface: wgpu::Surface,
     pub(crate) preferred_format: wgpu::TextureFormat,
@@ -176,6 +177,7 @@ impl GraphicsContext {
 
         Ok(GraphicsContext {
             device,
+            adapter,
             queue,
             surface,
             preferred_format,
@@ -375,10 +377,10 @@ impl GraphicsContext {
             self.uniform_buffer_data =
                 vec![0; new_uniform_buffer_count as usize * uniform_alignment as usize];
 
-            println!(
+            /*println!(
                 "New Uniform Buffer Size: {} -> {}!",
                 self.uniform_buffer_count, new_uniform_buffer_count
-            );
+            );*/
             self.uniform_buffer_count = new_uniform_buffer_count;
         }
 
@@ -419,6 +421,15 @@ impl GraphicsContext {
         output.present();
         //println!("Render finished!");
         Ok(())
+    }
+
+    pub fn renderer_info(&self) -> String {
+        format!(
+            "Using '{}' ({:?}) on {:?}",
+            self.adapter.get_info().name,
+            self.adapter.get_info().device_type,
+            self.adapter.get_info().backend
+        )
     }
 }
 

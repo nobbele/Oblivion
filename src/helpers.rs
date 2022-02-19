@@ -19,12 +19,6 @@ pub fn get_adapter_surface(
     }))
     .ok_or(OblivionError::RequestAdapter)?;
 
-    println!(
-        "Using '{}' on {:?}",
-        adapter.get_info().name,
-        adapter.get_info().backend
-    );
-
     Ok((adapter, surface))
 }
 
