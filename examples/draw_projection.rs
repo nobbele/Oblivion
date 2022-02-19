@@ -23,6 +23,7 @@ impl common::Example for DrawProjectionExample {
                 [dimensions.x / 2.0, dimensions.y / 2.0],
                 [400.0, 400.0],
                 [1.0, 0.0, 0.0, 1.0],
+                0.01,
                 oblivion::DrawMode::stroke(dimensions.x / 100.0),
             )
             .unwrap()

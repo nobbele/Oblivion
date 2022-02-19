@@ -40,6 +40,7 @@ fn create_mesh(ctx: &GraphicsContext) -> Mesh {
             [2.0 / 3.0, 0.0],
             [1.0 / 3.0, 1.0 / 3.0],
             [1.0, 1.0, 1.0, 1.0], // WHITE
+            0.01,
             oblivion::DrawMode::stroke(0.02),
         )
         .unwrap()
