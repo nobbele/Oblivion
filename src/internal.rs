@@ -49,6 +49,7 @@ impl MeshBuffer {
                 contents: bytemuck::cast_slice(vertex),
                 // MAP_READ is needed to not corrupt the data.
                 // Your guess is as good as mine.
+                // See: https://github.com/gfx-rs/wgpu/issues/2515
                 usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::MAP_READ,
             }),
             vertex.len() as u32,
