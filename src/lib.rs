@@ -261,6 +261,16 @@ impl Render {
             },
         })
     }
+
+    pub fn reset(&mut self) {
+        self.shader_stack.clear();
+        self.render_groups.truncate(1);
+        self.render_groups[0].queue.clear();
+        self.render_groups[0].clear_color = None;
+        self.render_groups[0].target_id = TargetId::Screen;
+        self.render_stack.clear();
+        self.active_shader_data.clear();
+    }
 }
 
 /// Clears the screen with a color.

@@ -331,7 +331,7 @@ impl GraphicsContext {
 
     // Maybe take render as &mut?
     /// Submits the render object to Oblivion's rendering system.
-    pub fn submit_render(&mut self, render: Render) -> OblivionResult<()> {
+    pub fn submit_render(&mut self, render: &Render) -> OblivionResult<()> {
         //println!("Starting render!");
         let uniform_alignment = self.uniform_alignment as wgpu::BufferAddress;
         let output = self

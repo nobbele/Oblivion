@@ -32,6 +32,7 @@ pub fn run<E: Example + 'static>() {
 
     let mut prev = std::time::Instant::now();
     let mut frame_count = 0;
+    let mut render = Render::new();
 
     event_loop.run(move |event, _window, control_flow| match event {
         Event::WindowEvent {
@@ -62,9 +63,9 @@ pub fn run<E: Example + 'static>() {
                 frame_count = 0;
             }
             ex.update(&mut ctx);
-            let mut render = Render::new();
+            render.reset();
             ex.draw(&mut render);
-            ctx.submit_render(render).unwrap();
+            ctx.submit_render(&render).unwrap();
             frame_count += 1;
         }
         Event::LoopDestroyed => { /* on quit */ }
